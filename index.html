@@ -1,0 +1,1567 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Classroom Real-Time Study</title>
+    <!-- Tailwind CSS Play CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+      tailwind.config = {
+        theme: {
+          extend: {
+            fontFamily: {
+              sans: ['Inter', 'ui-sans-serif', 'system-ui', '-apple-system', 'sans-serif'],
+              mono: ['JetBrains Mono', 'Fira Code', 'monospace']
+            }
+          }
+        }
+      }
+    </script>
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+    <!-- PeerJS CDN -->
+    <script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js"></script>
+    <!-- AlpineJS CDN -->
+    <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
+    
+    <style>
+      body {
+        font-family: 'Inter', sans-serif;
+        background-color: #f8fafc; /* Slate-50 */
+      }
+      [x-cloak] { display: none !important; }
+    </style>
+  </head>
+  <body class="min-h-screen text-slate-800 flex flex-col antialiased selection:bg-indigo-100" x-data="classroomApp">
+
+    <!-- Global Header -->
+    <header class="w-full border-b border-slate-200/80 bg-white/80 backdrop-blur-md sticky top-0 z-30">
+      <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+        <div class="flex items-center gap-3">
+          <div class="h-9 w-9 bg-indigo-600 rounded-lg flex items-center justify-center text-white shadow-sm shadow-indigo-100">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
+            </svg>
+          </div>
+          <h1 
+            @click="handleTitleClick" 
+            class="text-xl font-bold tracking-tight text-slate-900 cursor-pointer select-none active:scale-95 transition-transform"
+            title="Click 3 times to access Teacher Gate"
+          >
+            Real-Time Study
+          </h1>
+        </div>
+
+        <div class="flex items-center gap-2">
+          <!-- Active Status Badge -->
+          <template x-if="role === 'student' && connectionStatus === 'connected'">
+            <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium bg-emerald-50 text-emerald-700 border border-emerald-100">
+              <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+              Connected (Student)
+            </span>
+          </template>
+          <template x-if="role === 'teacher'">
+            <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium bg-indigo-50 text-indigo-700 border border-indigo-100">
+              <span class="w-2 h-2 rounded-full bg-indigo-500 animate-pulse"></span>
+              Instructor Mode
+            </span>
+          </template>
+        </div>
+      </div>
+    </header>
+
+    <!-- Main Content Area -->
+    <main class="flex-1 flex flex-col items-center justify-center p-4 sm:p-6 lg:p-8 max-w-7xl w-full mx-auto">
+      
+      <!-- LOBBY STATE (Initial Entrance) -->
+      <template x-if="role === 'lobby'">
+        <div class="w-full max-w-md bg-white rounded-2xl border border-slate-200 shadow-xl p-8 transition-all duration-300 hover:shadow-2xl hover:border-slate-300" x-cloak>
+          <div class="text-center mb-8">
+            <div class="mx-auto w-14 h-14 bg-indigo-50 text-indigo-600 rounded-full flex items-center justify-center mb-4 border border-indigo-100">
+              <svg class="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
+              </svg>
+            </div>
+            <h2 class="text-2xl font-bold text-slate-900">Student Sign-In</h2>
+            <p class="text-slate-500 text-sm mt-1.5">Enter details below to start submission session</p>
+          </div>
+
+          <form @submit.prevent="joinAsStudent" class="space-y-5">
+            <div>
+              <label class="block text-xs font-semibold uppercase tracking-wider text-slate-500 mb-1.5">Your Full Name</label>
+              <input 
+                type="text" 
+                required 
+                x-model="studentName" 
+                class="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:ring-2 focus:ring-indigo-500/10 focus:border-indigo-500 outline-none transition-all placeholder:text-slate-400 font-medium" 
+                placeholder="e.g., Jane Doe"
+              >
+            </div>
+
+            <div>
+              <label class="block text-xs font-semibold uppercase tracking-wider text-slate-500 mb-1.5">Classroom Code</label>
+              <input 
+                type="text" 
+                required 
+                x-model="classCodeInput" 
+                class="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:ring-2 focus:ring-indigo-500/10 focus:border-indigo-500 outline-none transition-all placeholder:text-slate-400 font-mono tracking-wider font-semibold uppercase" 
+                placeholder="e.g., STUDY-KB82"
+              >
+            </div>
+
+            <!-- Error Notice -->
+            <template x-if="connectionStatus === 'error'">
+              <div class="p-3 bg-rose-50 border border-rose-100 rounded-xl text-rose-700 text-xs font-medium flex gap-2 items-start">
+                <svg class="w-4 h-4 mt-0.5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+                <span x-text="connectionError"></span>
+              </div>
+            </template>
+
+            <!-- Submit Button / Loader -->
+            <button 
+              type="submit" 
+              :disabled="connectionStatus === 'connecting'"
+              class="w-full flex items-center justify-center gap-2.5 bg-slate-900 text-white font-semibold px-5 py-3.5 rounded-xl hover:bg-slate-800 focus:ring-4 focus:ring-slate-900/10 transition-all outline-none disabled:bg-slate-300 disabled:cursor-not-allowed group"
+            >
+              <template x-if="connectionStatus === 'connecting'">
+                <svg class="animate-spin h-5 w-5 text-white" fill="none" viewBox="0 0 24 24">
+                  <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                  <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                </svg>
+              </template>
+              <span x-text="connectionStatus === 'connecting' ? 'Connecting to Room...' : 'Connect & Attend Session'"></span>
+              <template x-if="connectionStatus !== 'connecting'">
+                <svg class="w-4 h-4 transition-transform group-hover:translate-x-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 5l7 7-7 7M5 5l7 7-7 7" />
+                </svg>
+              </template>
+            </button>
+          </form>
+
+          <p class="text-center text-xs text-slate-400 mt-6 font-medium">
+            Self-contained classroom study tool powered by PeerJS.
+          </p>
+        </div>
+      </template>
+
+      <!-- STUDENT ROLE STATE -->
+      <template x-if="role === 'student'">
+        <div class="w-full max-w-3xl flex flex-col gap-6" x-cloak>
+          <!-- Welcome Bar -->
+          <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white border border-slate-200 rounded-2xl px-6 py-4 shadow-sm">
+            <div>
+              <span class="text-xs font-semibold uppercase tracking-wider text-slate-450 text-indigo-600 block mb-0.5">Attendee Profile</span>
+              <h2 class="text-lg font-bold text-slate-900" x-text="studentName"></h2>
+            </div>
+            <div class="flex items-center gap-3">
+              <span class="text-slate-400 text-xs font-mono font-medium border border-slate-200 px-2.5 py-1 rounded bg-slate-50">
+                Connected Workspace Peer
+              </span>
+              <button 
+                @click="location.reload()" 
+                class="text-xs font-semibold text-rose-600 hover:text-rose-700 bg-rose-50 hover:bg-rose-100 border border-rose-100 rounded-lg px-3 py-1.5 transition-colors"
+              >
+                Sign Out
+              </button>
+            </div>
+          </div>
+
+          <!-- Active Study Area -->
+          <template x-if="!activeExam">
+            <div class="bg-white border border-slate-200 rounded-2xl shadow-md overflow-hidden animate-fade-in">
+              <!-- HEADER -->
+              <div class="border-b border-slate-200 bg-slate-50 px-6 py-4.5">
+                <span class="inline-flex items-center gap-1 text-xs font-bold uppercase tracking-wider text-indigo-600 bg-indigo-50 px-2.5 py-1 rounded-full mb-2">
+                  <span class="w-1.5 h-1.5 rounded-full bg-indigo-500 animate-ping"></span>
+                  Broadcasting Feed
+                </span>
+                <h3 class="text-slate-500 text-sm font-medium">Instructor posted question:</h3>
+              </div>
+
+              <!-- WORKPLATE BODY -->
+              <div class="p-6">
+                <!-- Case: Waiting for Question -->
+                <template x-if="!activeQuestion">
+                  <div class="flex flex-col items-center justify-center p-12 text-center">
+                    <div class="w-16 h-16 bg-amber-50 rounded-full border border-amber-100 flex items-center justify-center text-amber-500 animate-pulse mb-4">
+                      <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
+                      </svg>
+                    </div>
+                    <h4 class="text-xl font-bold text-slate-800">Waiting for Question...</h4>
+                    <p class="text-slate-400 text-sm max-w-md mt-1.5">
+                      The teacher hasn't broadcasted a live question yet. Enjoy the study break! We will activate automatically.
+                    </p>
+                  </div>
+                </template>
+
+                <!-- Case: Question Ready to Answer -->
+                <template x-if="activeQuestion">
+                  <div class="space-y-6">
+                    <!-- The Broadcast Question -->
+                    <div class="p-5 bg-indigo-50/50 border border-indigo-100 rounded-xl">
+                      <p class="text-xl sm:text-2xl font-bold text-indigo-955 text-indigo-900 leading-snug font-sans" x-text="activeQuestion"></p>
+                    </div>
+
+                    <!-- Submission State: Submitted -->
+                    <template x-if="answerSubmitted">
+                      <div class="p-6 bg-slate-50 border border-slate-200 rounded-xl flex flex-col items-center text-center">
+                        <div class="w-12 h-12 rounded-full bg-emerald-50 text-emerald-600 flex items-center justify-center border border-emerald-100 mb-3">
+                          <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                          </svg>
+                        </div>
+                        <h4 class="text-lg font-bold text-slate-800">Your answer has been submitted!</h4>
+                        <p class="text-slate-500 text-sm mt-0.5">We've locked your submission. Awaiting new questions.</p>
+                        
+                        <div class="w-full text-left bg-white border border-slate-200/80 rounded-xl p-4 mt-5">
+                          <span class="text-xs font-bold text-slate-400 uppercase tracking-widest block mb-2">My Locked Response</span>
+                          <p class="text-slate-700 font-medium font-mono text-sm whitespace-pre-wrap leading-relaxed" x-text="lastSubmittedAnswer"></p>
+                        </div>
+                      </div>
+                    </template>
+
+                    <!-- Submission State: Ready to Answer -->
+                    <template x-if="!answerSubmitted">
+                      <form @submit.prevent="submitStudentAnswer" class="space-y-4">
+                        <div>
+                          <label class="block text-xs font-bold uppercase tracking-wider text-slate-500 mb-2">Your Answer Space</label>
+                          <textarea 
+                            required 
+                            x-model="studentAnswer"
+                            class="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:ring-2 focus:ring-indigo-500/10 focus:border-indigo-500 outline-none transition-all placeholder:text-slate-400 h-40 resize-y font-medium text-slate-700 leading-relaxed" 
+                            placeholder="Type your response or answers precisely here..."
+                          ></textarea>
+                        </div>
+
+                        <div class="flex items-center justify-between pt-2">
+                          <p class="text-xs text-slate-400 font-medium">Responses sync to the teacher in real-time instantly on transmission.</p>
+                          <button 
+                            type="submit" 
+                            class="flex items-center gap-2 bg-indigo-600 text-white hover:bg-indigo-700 active:scale-[0.98] font-semibold px-6 py-2.5 rounded-xl border border-indigo-700 shadow-sm transition-all focus:ring-4 focus:ring-indigo-500/10"
+                          >
+                            Submit Response
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
+                            </svg>
+                          </button>
+                        </div>
+                      </form>
+                    </template>
+                  </div>
+                </template>
+              </div>
+            </div>
+          </template>
+
+          <!-- Case: Active Quiz / Exam Mode -->
+          <template x-if="activeExam">
+            <div class="bg-white border border-slate-200 rounded-2xl shadow-lg overflow-hidden transition-all duration-300">
+              
+              <!-- HEADER -->
+              <div class="border-b border-rose-100 bg-rose-50/50 px-6 py-5 flex items-center justify-between flex-wrap gap-2">
+                <div>
+                  <span class="inline-flex items-center gap-1 text-[10px] font-bold uppercase tracking-widest text-rose-600 bg-rose-50 px-2.5 py-1 rounded-full border border-rose-100 mb-1">
+                    <span class="w-1.5 h-1.5 rounded-full bg-rose-500 animate-pulse"></span>
+                    Live Form Mode
+                  </span>
+                  <h3 class="text-lg font-bold text-slate-900" x-text="activeExam.title"></h3>
+                </div>
+                
+                <div class="text-right">
+                  <span class="text-xs font-mono font-bold text-rose-700 bg-rose-100 px-3 py-1.5 rounded-lg border border-rose-150" x-text="`Progress: ${getStudentExamProgressCount()} / ${activeExam.questions.length}`"></span>
+                </div>
+              </div>
+
+              <!-- Live Horizontal Progress Line -->
+              <div class="w-full bg-slate-100 h-1.5">
+                <div 
+                  class="bg-indigo-600 h-full transition-all duration-300 rounded-r"
+                  :style="`width: ${(getStudentExamProgressCount() / activeExam.questions.length) * 100}%`"
+                ></div>
+              </div>
+
+              <div class="p-6">
+                <!-- SUBMITTED SCREEN -->
+                <template x-if="studentExamSubmitted">
+                  <div class="py-12 px-6 text-center max-w-lg mx-auto">
+                    <div class="mx-auto w-16 h-16 bg-emerald-50 text-emerald-600 rounded-full flex items-center justify-center mb-5 border border-emerald-100 shadow-sm animate-bounce">
+                      <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7" />
+                      </svg>
+                    </div>
+                    <h4 class="text-2xl font-black text-slate-800">Answers Sealed & Submitted!</h4>
+                    <p class="text-slate-500 text-sm mt-2 leading-relaxed">
+                      Your responses were compiled and uploaded to the instructor. Hold on tight — the teacher will stop the draft checking period soon!
+                    </p>
+
+                    <div class="mt-8 text-left bg-slate-50 border border-slate-200/80 rounded-2xl p-5 space-y-4">
+                      <span class="text-xs font-bold text-slate-400 uppercase tracking-widest block border-b border-slate-200 pb-2">Your Answers Record</span>
+                      <template x-for="(q, idx) in activeExam.questions" :key="q.id">
+                        <div>
+                          <p class="text-xs font-bold text-slate-700 block mb-1" x-text="`Question ${idx + 1}: ${q.text}`"></p>
+                          <p class="text-xs font-mono text-indigo-700 bg-white border border-slate-150 rounded px-2.5 py-1.5 overflow-x-auto whitespace-pre-wrap" x-text="studentExamAnswers[idx] || '(No response supplied)'"></p>
+                        </div>
+                      </template>
+                    </div>
+                  </div>
+                </template>
+
+                <!-- ACTIVE EXAM FORM FILLING -->
+                <template x-if="!studentExamSubmitted">
+                  <div class="space-y-8">
+                    <div class="bg-indigo-50 border border-indigo-100/50 rounded-xl p-4.5 text-xs text-indigo-850 flex gap-2.5 items-start">
+                      <svg class="w-5 h-5 text-indigo-600 shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                      </svg>
+                      <p class="leading-relaxed">
+                        Please fill in each response fields below. Selecting MCQs or entering open text answers updates the instructor dashboard <strong>in real-time</strong>. Ensure all questions are addressed before locking!
+                      </p>
+                    </div>
+
+                    <!-- Questions Stack -->
+                    <div class="space-y-6">
+                      <template x-for="(q, index) in activeExam.questions" :key="q.id">
+                        <div class="p-5 border border-slate-200 rounded-2xl bg-slate-50/50 space-y-4">
+                          <div class="flex items-start justify-between gap-4">
+                            <span class="text-xs font-bold font-mono text-rose-500 bg-rose-50 border border-rose-100 rounded px-2 py-0.5 inline-block" x-text="`QUESTION ${index + 1}`"></span>
+                            <span class="text-[10px] font-bold text-slate-450 uppercase tracking-wide bg-slate-100 px-2 py-0.5 rounded" x-text="q.type === 'mcq' ? 'Multiple Choice' : 'Open Response'"></span>
+                          </div>
+
+                          <p class="font-bold text-slate-800 text-base" x-text="q.text"></p>
+
+                          <!-- Choices (If MCQ) -->
+                          <template x-if="q.type === 'mcq'">
+                            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-3">
+                              <template x-for="opt in q.options" :key="opt">
+                                <label 
+                                  class="flex items-center gap-3 px-4 py-3 bg-white border rounded-xl hover:border-slate-300 cursor-pointer transition-all duration-150 shadow-2xs relative"
+                                  :class="studentExamAnswers[index] === opt ? 'ring-2 ring-indigo-550 border-indigo-500 bg-indigo-50/20' : 'border-slate-200'"
+                                >
+                                  <input 
+                                    type="radio" 
+                                    :name="`question-${index}`" 
+                                    :value="opt"
+                                    class="text-indigo-600 focus:ring-indigo-550 h-4 w-4"
+                                    :checked="studentExamAnswers[index] === opt"
+                                    @change="updateExamAnswer(index, opt)"
+                                  >
+                                  <span class="text-sm font-semibold text-slate-700" x-text="opt"></span>
+                                </label>
+                              </template>
+                            </div>
+                          </template>
+
+                          <!-- Text Input (If Text) -->
+                          <template x-if="q.type !== 'mcq'">
+                            <textarea 
+                              class="w-full px-4 py-3 bg-white border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500/10 focus:border-indigo-500 outline-none transition-all placeholder:text-slate-400 h-28 text-sm font-medium text-slate-700 leading-relaxed" 
+                              placeholder="Type your explanation detail or comment here..."
+                              :value="studentExamAnswers[index] || ''"
+                              @input.debounce.350ms="updateExamAnswer(index, $event.target.value)"
+                            ></textarea>
+                          </template>
+                        </div>
+                      </template>
+                    </div>
+
+                    <!-- Final Submit Box -->
+                    <div class="pt-4 border-t border-slate-100 flex flex-col sm:flex-row items-center justify-between gap-4">
+                      <p class="text-xs text-slate-400 font-medium">Warning: Clicking Submit locks answers. You cannot change them after submission.</p>
+                      
+                      <button 
+                        @click="submitStudentExam"
+                        class="w-full sm:w-auto flex items-center justify-center gap-2 bg-indigo-600 text-white hover:bg-indigo-700 active:scale-95 font-semibold px-6 py-3 rounded-xl border border-indigo-700 shadow-sm transition-all focus:ring-4 focus:ring-indigo-500/10 cursor-pointer"
+                      >
+                        Submit & Lock Exam
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+                        </svg>
+                      </button>
+                    </div>
+                  </div>
+                </template>
+              </div>
+            </div>
+          </template>
+        </div>
+      </template>
+
+      <!-- TEACHER ROLE STATE -->
+      <template x-if="role === 'teacher'">
+        <div class="w-full max-w-6xl flex flex-col gap-6" x-cloak>
+          
+          <!-- Mode Switcher & Stats Summary Header -->
+          <div class="bg-white border border-slate-200 rounded-2xl p-5 shadow-sm flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <div class="flex items-center gap-3">
+              <div class="w-10 h-10 bg-indigo-50 border border-indigo-150 rounded-xl flex items-center justify-center text-indigo-600">
+                <svg class="w-5 h-5 animate-pulse" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
+                </svg>
+              </div>
+              <div>
+                <h2 class="text-base font-black text-slate-900 leading-tight">Instructor Control Desk</h2>
+                <div class="flex items-center gap-2 mt-0.5">
+                  <span class="text-xs text-slate-400 font-semibold" x-text="`Room Code: ${teacherClassCode}`"></span>
+                  <span class="inline-flex w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
+                </div>
+              </div>
+            </div>
+
+            <!-- Interface Mode Switch Tabs -->
+            <div class="flex items-center gap-1 bg-slate-100 p-1 rounded-xl border border-slate-200/80 max-w-md w-full sm:w-auto">
+              <button 
+                @click="activeMode = 'single'"
+                :class="activeMode === 'single' ? 'bg-white shadow-xs font-black text-indigo-700' : 'text-slate-500 hover:text-slate-800 font-bold'"
+                class="flex-1 sm:flex-none py-1.5 px-3.5 rounded-lg text-xs transition-all outline-none"
+              >
+                Quick Single Q
+              </button>
+              <button 
+                @click="activeMode = 'exam'"
+                :class="activeMode === 'exam' ? 'bg-white shadow-xs font-black text-indigo-700' : 'text-slate-500 hover:text-slate-800 font-bold'"
+                class="flex-1 sm:flex-none py-1.5 px-3.5 rounded-lg text-xs transition-all outline-none"
+              >
+                Exam & Progress Suite
+              </button>
+            </div>
+          </div>
+
+          <!-- SUB-STATE 1: SINGLE QUESTION WORKSPACE -->
+          <template x-if="activeMode === 'single'">
+            <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 w-full animate-fade-in">
+              
+              <!-- LEFT COLUMN: Workspace Details & Controller (lg:col-span-4) -->
+              <div class="lg:col-span-4 space-y-6">
+                
+                <!-- Room Info Header -->
+                <div class="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm">
+                  <span class="text-xs font-bold uppercase tracking-wider text-indigo-600 block mb-1">Interactive Classroom Channel</span>
+                  <h2 class="text-xl font-bold text-slate-900 mb-4">Host Workspace</h2>
+                  
+                  <div class="p-4 bg-slate-50 border border-slate-200 rounded-xl flex items-center justify-between">
+                    <div>
+                      <span class="text-[10px] font-bold text-slate-450 uppercase tracking-widest block mb-0.5">Attendee Invite Code</span>
+                      <code class="text-xl font-mono font-bold text-indigo-700 tracking-wider" x-text="teacherClassCode"></code>
+                    </div>
+                    <!-- Copy Button -->
+                    <button 
+                      @click="copyCode" 
+                      class="p-2.5 rounded-lg border border-slate-200 bg-white shadow-sm hover:bg-slate-50 active:scale-95 transition-all outline-none cursor-pointer"
+                      :title="copied ? 'Copied' : 'Copy invite code'"
+                    >
+                      <template x-if="copied">
+                        <svg class="w-5 h-5 text-emerald-600 animate-bounce" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                        </svg>
+                      </template>
+                      <template x-if="!copied">
+                        <svg class="w-5 h-5 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 5H6a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2v-1M8 5a2 2 0 002 2h2a2 2 0 002-2M8 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01" />
+                        </svg>
+                      </template>
+                    </button>
+                  </div>
+
+                  <!-- Stats Indicators -->
+                  <div class="grid grid-cols-2 gap-3 mt-4 pt-4 border-t border-slate-100">
+                    <div class="bg-indigo-50/40 rounded-xl p-3 border border-indigo-100/50 text-center">
+                      <span class="text-2xl font-black text-indigo-700 font-mono" x-text="numConnectedStudents()">0</span>
+                      <span class="text-[10px] uppercase font-bold text-slate-500 block">connected</span>
+                    </div>
+                    <div class="bg-emerald-50/40 rounded-xl p-3 border border-emerald-100/50 text-center">
+                      <span class="text-2xl font-black text-emerald-700 font-mono" x-text="numAnswersSubmitted()">0</span>
+                      <span class="text-[10px] uppercase font-bold text-slate-500 block">responses</span>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Question Dispatcher -->
+                <div class="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm">
+                  <h3 class="text-sm font-bold text-slate-900 mb-3 flex items-center gap-2">
+                    <svg class="w-4 h-4 text-indigo-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                    </svg>
+                    Question Controller
+                  </h3>
+
+                  <form @submit.prevent="sendQuestion" class="space-y-4">
+                    <div>
+                      <label class="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1.5">New Live Question Description</label>
+                      <textarea 
+                        required 
+                        x-model="newQuestionInput"
+                        class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:ring-2 focus:ring-indigo-500/10 focus:border-indigo-500 outline-none transition-all placeholder:text-slate-400 text-sm h-28 resize-none font-medium text-slate-700"
+                        placeholder="e.g., Explain the difference between server-side and client-side rendering with examples."
+                      ></textarea>
+                    </div>
+
+                    <button 
+                      type="submit" 
+                      :disabled="!newQuestionInput.trim() || numConnectedStudents() === 0"
+                      class="w-full flex items-center justify-center gap-2.5 bg-slate-900 border border-slate-950 text-white font-semibold py-2.5 rounded-xl hover:bg-slate-800 disabled:bg-slate-200 disabled:border-slate-200 disabled:text-slate-450 disabled:text-slate-400 disabled:cursor-not-allowed group transition-all duration-250 cursor-pointer shadow-sm"
+                    >
+                      <svg class="w-4 h-4 group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
+                      </svg>
+                      <span>Broadcast Question</span>
+                    </button>
+                    
+                    <template x-if="numConnectedStudents() === 0">
+                      <p class="text-[10px] text-amber-600 font-medium text-center bg-amber-50 border border-amber-100 rounded-lg p-2 leading-relaxed">
+                        Class code generated. Instruct students to input code STUDY-... before posting questions.
+                      </p>
+                    </template>
+                  </form>
+                </div>
+              </div>
+
+              <!-- RIGHT COLUMN: Real-Time Live Answers (lg:col-span-8) -->
+              <div class="lg:col-span-8 space-y-6">
+                
+                <!-- Currently Active Question Display -->
+                <div class="bg-indigo-600/95 border border-indigo-700 px-6 py-5 rounded-2xl shadow-md text-white">
+                  <span class="text-[10px] font-black uppercase tracking-widest text-indigo-200/90 block mb-1">Active Broadcast Question</span>
+                  <template x-if="currentTeacherQuestion">
+                    <h3 class="text-xl font-bold leading-snug font-sans text-white" x-text="currentTeacherQuestion"></h3>
+                  </template>
+                  <template x-if="!currentTeacherQuestion">
+                    <h3 class="text-xl font-bold leading-snug font-sans text-indigo-200 italic">No question broadcasted. Standby...</h3>
+                  </template>
+                </div>
+
+                <!-- Student Submissions Dashboard Panel -->
+                <div class="bg-white border border-slate-200 rounded-2xl shadow-md overflow-hidden min-h-[460px] flex flex-col">
+                  <!-- Header -->
+                  <div class="px-6 py-4 border-b border-slate-200 bg-slate-50 flex items-center justify-between">
+                    <h3 class="font-bold text-slate-900 flex items-center gap-2">
+                      <svg class="w-5 h-5 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 002 2h2a2 2 0 002-2z" />
+                      </svg>
+                      Attendees response monitor
+                    </h3>
+                    <span class="text-xs font-bold font-mono text-slate-550 text-indigo-650 bg-indigo-50 border border-indigo-100 px-2.5 py-0.5 rounded-full" x-text="`${numAnswersSubmitted()} / ${numConnectedStudents()} Submitted`">
+                      0 / 0 Submitted
+                    </span>
+                  </div>
+
+                  <!-- Body List / Grid -->
+                  <div class="p-6 flex-1 flex flex-col justify-between">
+                    <!-- Case: Empty Students list -->
+                    <template x-if="numConnectedStudents() === 0">
+                      <div class="flex-1 flex flex-col items-center justify-center p-12 text-center my-auto">
+                        <div class="w-20 h-20 bg-slate-50 rounded-full flex items-center justify-center text-slate-400 mb-4 border border-slate-100">
+                          <svg class="w-10 h-10 animate-pulse" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2" />
+                            <circle cx="9" cy="7" r="4" />
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M23 21v-2a4 4 0 00-3-3.87m-4-12a4 4 0 010 7.75" />
+                          </svg>
+                        </div>
+                        <h4 class="text-lg font-bold text-slate-700">Classroom is empty</h4>
+                        <p class="text-slate-400 text-sm max-w-sm mt-1">
+                          No student attendee connections recognized. Distribute Class invite code to students to enable real-time tracking.
+                        </p>
+                      </div>
+                    </template>
+
+                    <!-- Case: Student Grid list -->
+                    <template x-if="numConnectedStudents() > 0">
+                      <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <template x-for="item in students.filter(s => s.connected)" :key="item.id">
+                          <div class="border border-slate-200 bg-slate-50 rounded-xl p-4 shadow-sm flex flex-col justify-between hover:shadow-md hover:border-slate-300 transition-all duration-200">
+                            <div>
+                              <!-- Header of Pupil Item -->
+                              <div class="flex items-center justify-between gap-3 border-b border-slate-150 pb-2.5 mb-2.5 border-dashed border-slate-200">
+                                <span class="font-bold text-slate-900 text-sm" x-text="item.name"></span>
+                                
+                                <!-- Submit status chips -->
+                                <template x-if="item.answer">
+                                  <span class="inline-flex items-center gap-1 text-[10px] font-bold uppercase tracking-wider text-emerald-700 bg-emerald-50 border border-emerald-100 px-2 py-0.5 rounded-md">
+                                    <span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
+                                    Transmitted
+                                  </span>
+                                </template>
+                                <template x-if="!item.answer">
+                                  <span class="inline-flex items-center gap-1 text-[10px] font-bold uppercase tracking-wider text-amber-700 bg-amber-50 border border-amber-100 px-2 py-0.5 rounded-md">
+                                    <span class="w-1.5 h-1.5 rounded-full bg-amber-500 animate-ping"></span>
+                                    Thinking...
+                                  </span>
+                                </template>
+                              </div>
+
+                              <!-- Text Response -->
+                              <div class="mb-3">
+                                <template x-if="item.answer">
+                                  <p class="text-xs text-slate-700 whitespace-pre-wrap leading-relaxed font-mono bg-white border border-slate-200/60 p-3 rounded-lg" x-text="item.answer"></p>
+                                </template>
+                                <template x-if="!item.answer">
+                                  <p class="text-xs text-slate-400 italic font-medium p-1">No response compiled yet...</p>
+                                </template>
+                              </div>
+                            </div>
+                          </div>
+                        </template>
+                      </div>
+                    </template>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </template>
+
+          <!-- SUB-STATE 2: EXAM PORTAL & INTERACTIVE REAL-TIME REVIEW -->
+          <template x-if="activeMode === 'exam'">
+            <div class="w-full flex flex-col gap-6 animate-fade-in">
+              
+              <!-- STEP A: CATALOG COMPILER / SETUP CUSTOM OR PREMADE -->
+              <template x-if="examStep === 'catalog'">
+                <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 w-full">
+                  
+                  <!-- Left: Premade Assessments -->
+                  <div class="lg:col-span-5 space-y-5">
+                    <div class="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm">
+                      <span class="text-xs font-black uppercase tracking-widest text-indigo-600 block mb-1">Interactive Syllabus Catalog</span>
+                      <h4 class="text-lg font-black text-slate-900 mb-4">Select Premade Exams</h4>
+                      
+                      <p class="text-xs text-slate-500 mb-5 leading-relaxed font-medium">
+                        Launch a pre-coded examination or dynamic check-point to check attendee comprehension immediately:
+                      </p>
+
+                      <div class="space-y-4">
+                        <template x-for="prem in premadeExams" :key="prem.id">
+                          <div class="border border-slate-200 p-4 rounded-2xl bg-slate-55 bg-slate-50/50 hover:bg-slate-50 transition-all hover:border-indigo-300">
+                            <div class="flex items-start justify-between gap-3 mb-2.5">
+                              <h5 class="font-bold text-sm text-slate-850" x-text="prem.title"></h5>
+                              <span class="text-[9px] uppercase font-black text-indigo-700 bg-indigo-50 border border-indigo-150 px-2 py-0.5 rounded inline-block shrink-0" x-text="`${prem.questions.length} Qs`"></span>
+                            </div>
+
+                            <!-- List summary -->
+                            <div class="space-y-1.5 mb-4 border-t border-slate-200/55 pt-2.5">
+                              <template x-for="(q, idx) in prem.questions" :key="q.id">
+                                <div class="flex items-center gap-1.5 text-xs text-slate-500">
+                                  <span class="w-1 h-1 rounded-full bg-slate-350"></span>
+                                  <span class="truncate max-w-xs font-medium text-[11px]" x-text="`Question ${idx+1}: ${q.text}`"></span>
+                                </div>
+                              </template>
+                            </div>
+
+                            <button 
+                              @click="launchExam(prem)"
+                              :disabled="numConnectedStudents() === 0"
+                              class="w-full flex items-center justify-center gap-1.5 bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2 rounded-xl text-xs transition-all disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer uppercase tracking-wider shadow-2xs border border-indigo-700"
+                            >
+                              <span>Launch This Exam</span>
+                              <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z" />
+                              </svg>
+                            </button>
+                          </div>
+                        </template>
+                      </div>
+                    </div>
+                  </div>
+
+                  <!-- Right: Custom Exam Creator -->
+                  <div class="lg:col-span-7 space-y-5">
+                    <!-- AI Prompt Helper & JSON Importer -->
+                  <div class="bg-indigo-50 border border-indigo-100 rounded-2xl p-5 mb-5 shadow-sm space-y-4">
+                    <div>
+                      <h4 class="text-sm font-black text-indigo-900 mb-2">Need Exam Questions?</h4>
+                      <p class="text-xs text-indigo-700 mb-3 leading-relaxed">
+                        Copy our formatting prompt to use with an AI (like Gemini) to generate compliant JSON questions.
+                      </p>
+                      <button 
+                        @click="copyAIPrompt"
+                        class="flex items-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2 px-3 rounded-lg text-xs transition-all cursor-pointer shadow-sm"
+                      >
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 5H6a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2v-1M8 5a2 2 0 002 2h2a2 2 0 002-2M8 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01" />
+                        </svg>
+                        Copy AI Formatting Prompt
+                      </button>
+                    </div>
+
+                    <div class="pt-4 border-t border-indigo-100/50">
+                      <label class="block text-xs font-bold text-indigo-900 uppercase tracking-widest mb-1.5">Or Paste JSON Directly</label>
+                      <textarea
+                        x-model="jsonImportInput"
+                        class="w-full px-3 py-2 bg-white border border-indigo-100 rounded-xl text-xs font-mono h-20 resize-none text-indigo-900 mb-2"
+                        placeholder='[{"text": "...", "type": "text", ...}]'
+                      ></textarea>
+                      <button 
+                        @click="importCustomExamQuestions"
+                        class="w-full flex items-center justify-center gap-2 bg-indigo-700 hover:bg-indigo-800 text-white font-bold py-2 px-3 rounded-lg text-xs transition-all cursor-pointer shadow-sm"
+                      >
+                        Import JSON Questions
+                      </button>
+                    </div>
+                  </div>
+
+                  <div class="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm">
+                      
+                      <div class="space-y-5">
+                        <!-- Custom Title Input -->
+                        <div>
+                          <label class="block text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1.5">Exam Header Title</label>
+                          <input 
+                            type="text" 
+                            x-model="customExamTitle" 
+                            class="w-full px-3.5 py-2.5 border border-slate-200 focus:ring-2 focus:ring-indigo-500/10 focus:border-indigo-500 outline-none transition-all font-bold text-slate-800 text-sm bg-slate-50/50 rounded-xl"
+                            placeholder="e.g. Calculus Basics Progress Check"
+                          >
+                        </div>
+
+                        <!-- Questions Draft List -->
+                        <div class="space-y-4 border-t border-slate-100 pt-5">
+                          <div class="flex items-center justify-between mb-3 flex-wrap gap-2">
+                            <span class="text-xs font-bold uppercase tracking-wider text-slate-500">Draft Questions</span>
+                            <button 
+                              @click="addCustomExamQuestion()" 
+                              class="inline-flex items-center gap-1 text-[11px] font-bold text-indigo-700 bg-indigo-50 hover:bg-indigo-100 border border-indigo-200 px-3 py-1.5 rounded-lg transition-colors cursor-pointer"
+                            >
+                              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 4v16m8-8H4" />
+                              </svg>
+                              Add New Question
+                            </button>
+                          </div>
+
+                          <div class="space-y-4 max-h-[460px] overflow-y-auto pr-1">
+                            <template x-for="(q, index) in customExamQuestions" :key="q.id">
+                              <div class="p-4 border border-slate-200 rounded-xl bg-slate-50/50 space-y-3.5 relative">
+                                <!-- Remove Question Button -->
+                                <button 
+                                  @click="removeCustomExamQuestion(index)" 
+                                  class="absolute top-4 right-4 text-slate-400 hover:text-rose-600 p-1 rounded-lg hover:bg-rose-50/50 transition-colors cursor-pointer"
+                                  title="Prune Question"
+                                >
+                                  <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                  </svg>
+                                </button>
+
+                                <div class="flex items-center gap-3">
+                                  <span class="text-xs font-bold font-mono text-indigo-700 bg-indigo-50 border border-indigo-100 px-2 py-0.5 rounded" x-text="`Question ${index+1}`"></span>
+                                  
+                                  <!-- Type Selector dropdown -->
+                                  <select 
+                                    x-model="q.type" 
+                                    class="text-[10px] font-bold bg-white border border-slate-200 rounded-lg px-2.5 py-1 text-slate-600 outline-none cursor-pointer"
+                                  >
+                                    <option value="text">Open Essay Prompt</option>
+                                    <option value="mcq">Multiple Choice (MCQ)</option>
+                                  </select>
+                                </div>
+
+                                <!-- Prompt Input -->
+                                <div>
+                                  <input 
+                                    type="text" 
+                                    x-model="q.text"
+                                    class="w-full px-3 py-2 bg-white border border-slate-200 focus:ring-1 focus:ring-indigo-500/10 focus:border-indigo-500 outline-none transition-all text-xs font-semibold text-slate-800 rounded-lg"
+                                    placeholder="Enter question text or educational query prompt..."
+                                  >
+                                </div>
+
+                                <!-- Choices List Block (If MCQ) -->
+                                <template x-if="q.type === 'mcq'">
+                                  <div class="space-y-2.5 pl-3 border-l-2 border-indigo-150 mt-1">
+                                    <span class="text-[9px] font-black text-slate-400 uppercase tracking-widest block">Configure Options & Key Code</span>
+                                    <div class="grid grid-cols-2 gap-2">
+                                      <template x-for="(opt, optIdx) in q.options" :key="optIdx">
+                                        <div class="flex items-center gap-1.5">
+                                          <span class="text-[10px] font-mono font-bold text-slate-400" x-text="String.fromCharCode(65 + optIdx)"></span>
+                                          <input 
+                                            type="text" 
+                                            x-model="q.options[optIdx]"
+                                            class="w-full px-2 py-1 bg-white border border-slate-205 border-slate-205 rounded text-[11px] font-semibold text-slate-700"
+                                            placeholder="Choice text..."
+                                          >
+                                        </div>
+                                      </template>
+                                    </div>
+
+                                    <!-- Set Correct Index -->
+                                    <div class="flex items-center gap-2 mt-2 pt-2 border-t border-dashed border-slate-200">
+                                      <span class="text-[10px] font-bold text-slate-500">Correct Target:</span>
+                                      <select 
+                                        x-model="q.correct" 
+                                        class="text-[10px] font-bold bg-white border border-slate-200 rounded px-2 py-0.5 outline-none text-indigo-700 cursor-pointer"
+                                      >
+                                        <template x-for="(opt, optIdx) in q.options" :key="optIdx">
+                                          <option :value="opt" x-text="`Choice ${String.fromCharCode(65 + optIdx)}: ${opt || '(Empty)'}`"></option>
+                                        </template>
+                                      </select>
+                                    </div>
+                                  </div>
+                                </template>
+                              </div>
+                            </template>
+                          </div>
+                        </div>
+
+                        <!-- Dispatch Control Panel -->
+                        <div class="pt-4 border-t border-slate-100 space-y-3">
+                          <button 
+                            @click="launchCustomExam()"
+                            :disabled="numConnectedStudents() === 0 || !customExamQuestions.some(q => q.text.trim())"
+                            class="w-full flex items-center justify-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white disabled:opacity-40 disabled:cursor-not-allowed font-black py-3 rounded-xl border border-indigo-700 shadow-sm transition-all cursor-pointer"
+                          >
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z" />
+                            </svg>
+                            <span>Broadcast Custom Exam</span>
+                          </button>
+                          
+                          <template x-if="numConnectedStudents() === 0">
+                            <p class="text-[10px] text-amber-600 font-medium text-center bg-amber-50 rounded-lg p-2 leading-relaxed">
+                              Room Code Generated. Active student peer nodes required to activate live examination.
+                            </p>
+                          </template>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                </div>
+              </template>
+
+              <!-- STEP B: INTUITIVE REAL-TIME MONITORING OF LIVE ASSESSMENT -->
+              <template x-if="examStep === 'live'">
+                <div class="space-y-6 w-full animate-fade-in">
+                  
+                  <!-- Broadcasting Header Banner -->
+                  <div class="bg-indigo-650 bg-indigo-600 text-white rounded-2xl p-6 shadow-md flex flex-col md:flex-row md:items-center justify-between gap-4 border border-indigo-705">
+                    <div>
+                      <span class="text-[10px] font-black uppercase tracking-widest text-indigo-200 block mb-0.5">Assessing Classroom Cohort</span>
+                      <h3 class="text-xl font-black text-white leading-tight mb-1" x-text="currentTeacherExam.title"></h3>
+                      <div class="flex items-center gap-1.5 text-xs text-indigo-150 font-medium mt-1">
+                        <span class="inline-flex w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
+                        <span>Broadcasting questions. Access details panel below for real-time draft typing feedback.</span>
+                      </div>
+                    </div>
+
+                    <button 
+                      @click="stopActiveExam()"
+                      class="flex items-center gap-1.5 bg-rose-600 hover:bg-rose-700 text-white font-bold py-2.5 px-5 rounded-xl text-xs transition-all border border-rose-700 shadow-sm cursor-pointer"
+                    >
+                      <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 10a1 1 0 011-1h4a1 1 0 011 1v4a1 1 0 01-1 1h-4a1 1 0 01-1-1v-4z" />
+                      </svg>
+                      <span>Lock & Close Exam</span>
+                    </button>
+                  </div>
+
+                  <!-- Cohort Monitor Grid -->
+                  <div class="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm">
+                    <h3 class="font-bold text-slate-900 text-base mb-1">Live Submissions Dashboard</h3>
+                    <p class="text-xs text-slate-400 mb-5">Click "Inspect Live Draft Responses" below to view student draft letters/text fields as they write.</p>
+
+                    <!-- Row list -->
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <template x-for="item in students.filter(s => s.connected)" :key="item.id">
+                        <div class="border border-slate-200 rounded-2xl bg-slate-50/50 p-4 shadow-3xs flex flex-col justify-between hover:border-slate-350 hover:bg-slate-50 transition-all relative">
+                          
+                          <div>
+                            <!-- Pupil Meta Header -->
+                            <div class="flex items-center justify-between gap-3 mb-3 border-b border-slate-200/60 pb-2">
+                              <span class="font-bold text-slate-900 text-sm" x-text="item.name"></span>
+                              
+                              <template x-if="item.examSubmitted">
+                                <span class="inline-flex items-center gap-1 text-[9px] font-bold uppercase tracking-wider text-emerald-755 text-emerald-700 bg-emerald-50 border border-emerald-100 px-2.5 py-1 rounded">
+                                  <span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
+                                  Form Submitted
+                                </span>
+                              </template>
+                              <template x-if="!item.examSubmitted">
+                                <span class="inline-flex items-center gap-1 text-[9px] font-bold uppercase tracking-wider text-amber-700 bg-amber-50 border border-amber-100 px-2.5 py-1 rounded">
+                                  <span class="w-1.5 h-1.5 rounded-full bg-amber-500 animate-ping"></span>
+                                  Writing Drafts
+                                </span>
+                              </template>
+                            </div>
+
+                            <!-- Live Progress Tracking meter -->
+                            <div class="space-y-1.5 mb-4">
+                              <div class="flex items-center justify-between text-[11px] text-slate-500">
+                                <span class="font-medium" x-text="`Progress: ${Object.keys(item.examAnswers || {}).length} / ${currentTeacherExam.questions.length}`"></span>
+                                <span class="font-bold text-slate-700" x-text="`${Math.round((Object.keys(item.examAnswers || {}).length / currentTeacherExam.questions.length) * 100)}%`"></span>
+                              </div>
+                              <div class="w-full bg-slate-200 h-2 rounded-full overflow-hidden">
+                                <div 
+                                  class="h-full rounded-full transition-all duration-350"
+                                  :class="item.examSubmitted ? 'bg-emerald-500' : 'bg-indigo-600'"
+                                  :style="`width: ${(Object.keys(item.examAnswers || {}).length / currentTeacherExam.questions.length) * 100}%`"
+                                ></div>
+                              </div>
+                            </div>
+
+                            <!-- Accordion details checker -->
+                            <div x-data="{ expanded: false }" class="border-t border-slate-200/60 pt-3">
+                              <button 
+                                @click="expanded = !expanded" 
+                                class="w-full flex items-center justify-between text-[11px] font-bold text-slate-500 hover:text-indigo-600 transition-colors uppercase outline-none cursor-pointer"
+                              >
+                                <span x-text="expanded ? 'Collapse Live Draft Inputs' : 'Inspect Live Draft Responses'"></span>
+                                <svg 
+                                  class="w-4 h-4 transform transition-transform" 
+                                  :class="expanded ? 'rotate-180' : ''" 
+                                  fill="none" stroke="currentColor" viewBox="0 0 24 24"
+                                >
+                                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+                                </svg>
+                              </button>
+
+                              <div x-show="expanded" class="mt-3 space-y-3" x-collapse>
+                                <template x-for="(q, qIdx) in currentTeacherExam.questions" :key="q.id">
+                                  <div class="bg-white border border-slate-205 p-3 rounded-xl text-xs space-y-1">
+                                    <div class="flex items-center justify-between gap-1">
+                                      <span class="font-bold text-[10px] text-slate-400" x-text="`Q${qIdx+1}: ${q.text}`"></span>
+                                      <span class="text-[9px] font-bold px-1.5 rounded uppercase" 
+                                        :class="q.type === 'mcq' ? 'bg-indigo-50 text-indigo-700' : 'bg-amber-100/50 text-amber-700'"
+                                        x-text="q.type"
+                                      ></span>
+                                    </div>
+
+                                    <div class="pt-1">
+                                      <template x-if="item.examAnswers && item.examAnswers[qIdx] !== undefined && item.examAnswers[qIdx] !== ''">
+                                        <div class="space-y-1">
+                                          <p class="font-mono bg-slate-50/50 p-2 rounded text-slate-800 text-xs leading-normal block whitespace-pre-wrap" x-text="item.examAnswers[qIdx]"></p>
+                                          
+                                          <!-- Evaluation if correct key matches -->
+                                          <template x-if="q.correct && q.type === 'mcq'">
+                                            <div class="inline-flex items-center gap-1 mt-1 text-[9px] font-bold"
+                                              :class="item.examAnswers[qIdx].trim().toLowerCase() === q.correct.trim().toLowerCase() ? 'text-emerald-600' : 'text-rose-500'"
+                                            >
+                                              <span class="w-1.5 h-1.5 rounded-full" :class="item.examAnswers[qIdx].trim().toLowerCase() === q.correct.trim().toLowerCase() ? 'bg-emerald-500' : 'bg-rose-500'"></span>
+                                              <span x-text="item.examAnswers[qIdx].trim().toLowerCase() === q.correct.trim().toLowerCase() ? '✓ Accurate' : `✗ Incorrect (Correct Option: ${q.correct})`"></span>
+                                            </div>
+                                          </template>
+                                        </div>
+                                      </template>
+                                      <template x-if="!item.examAnswers || item.examAnswers[qIdx] === undefined || item.examAnswers[qIdx] === ''">
+                                        <span class="italic text-slate-400 text-[10px]">&bull; Standing by for student entry...</span>
+                                      </template>
+                                    </div>
+                                  </div>
+                                </template>
+                              </div>
+                            </div>
+                          </div>
+
+                        </div>
+                      </template>
+                    </div>
+                  </div>
+                </div>
+              </template>
+
+              <!-- STEP C: FINAL COMPILATION & GRADING CARD TABLE -->
+              <template x-if="examStep === 'results'">
+                <div class="space-y-6 w-full animate-fade-in">
+                  
+                  <!-- Final Results Summary header -->
+                  <div class="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-4">
+                    <div class="flex items-center gap-3">
+                      <div class="w-12 h-12 bg-emerald-50 rounded-2xl border border-emerald-100 flex items-center justify-center text-emerald-600 shadow-sm shrink-0">
+                        <svg class="w-6 h-6 animate-bounce" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        </svg>
+                      </div>
+                      <div>
+                        <span class="text-[9px] font-black uppercase tracking-widest text-slate-400 block mb-0.5">SESSION REPORT GENERATED</span>
+                        <h3 class="text-xl font-black text-slate-900" x-text="`Grading: ${currentTeacherExam.title}`"></h3>
+                      </div>
+                    </div>
+
+                    <button 
+                      @click="resetExamMode()"
+                      class="flex items-center justify-center gap-1.5 px-4 py-2.5 bg-slate-900 border border-slate-950 hover:bg-slate-800 text-white font-bold text-xs rounded-xl shadow-sm transition-all cursor-pointer uppercase tracking-wider"
+                    >
+                      <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+                      </svg>
+                      Return to Syllabus Select
+                    </button>
+                  </div>
+
+                  <!-- Table Cards of Student responses -->
+                  <div class="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm space-y-6">
+                    <div>
+                      <h4 class="font-black text-slate-900 text-base">Grading Matrix & Feedback Comments</h4>
+                      <p class="text-xs text-slate-400 mt-0.5">Automated multiple choice indicators matched with manual slide score feedback parameters.</p>
+                    </div>
+
+                    <div class="space-y-5">
+                      <template x-for="item in students.filter(s => s.connected)" :key="item.id">
+                        <div 
+                          class="border border-slate-200 rounded-2xl bg-slate-50/50 p-5 space-y-4"
+                          x-data="{ manualScore: 100, feedbackText: 'Exceptional work, very thorough response!', graded: false }"
+                        >
+                          <!-- Header -->
+                          <div class="flex items-center justify-between border-b border-slate-200 pb-3 flex-wrap gap-2">
+                            <span class="font-black text-slate-900 text-sm" x-text="item.name"></span>
+                            
+                            <div class="flex items-center gap-3">
+                              <span class="text-xs font-semibold text-slate-500" x-text="item.examSubmitted ? 'Locked Submissions' : 'Incomplete / Self-Drafted Submissions'"></span>
+                              <span 
+                                class="text-[9px] font-black uppercase tracking-widest px-2.5 py-1 rounded border inline-block"
+                                :class="graded ? 'bg-emerald-50 text-emerald-700 border-emerald-100' : 'bg-slate-100 text-slate-500 border-slate-200'"
+                                x-text="graded ? 'Marks Sealed' : 'Awaiting instructor review'"
+                              ></span>
+                            </div>
+                          </div>
+
+                          <!-- Split Content View -->
+                          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <!-- Answers ledger review -->
+                            <div class="bg-white border border-slate-200 p-4 rounded-xl space-y-3.5 shadow-2xs">
+                              <span class="text-[9px] font-black text-slate-400 uppercase tracking-widest block border-b border-slate-100 pb-1.5">RECORD BOOK ENTRY</span>
+                              
+                              <template x-for="(q, idx) in currentTeacherExam.questions" :key="q.id">
+                                <div class="border-b border-slate-100 last:border-0 pb-2.5 last:pb-0 text-xs">
+                                  <p class="font-bold text-slate-850 mb-1" x-text="`Question ${idx+1}: ${q.text}`"></p>
+                                  
+                                  <div class="p-2.5 bg-slate-50 rounded-lg font-mono text-[11px] leading-relaxed text-slate-800">
+                                    <template x-if="item.examAnswers && item.examAnswers[idx] !== undefined && item.examAnswers[idx] !== ''">
+                                      <div class="flex flex-col gap-1">
+                                        <span class="text-slate-700 font-semibold block whitespace-pre-wrap" x-text="item.examAnswers[idx]"></span>
+                                        <!-- MCQ verification checks -->
+                                        <template x-if="q.correct && q.type==='mcq'">
+                                          <span class="text-[9px] font-black flex items-center gap-1.5 mt-1"
+                                            :class="item.examAnswers[idx].trim().toLowerCase() === q.correct.trim().toLowerCase() ? 'text-emerald-600' : 'text-rose-500'"
+                                          >
+                                            <span x-text="item.examAnswers[idx].trim().toLowerCase() === q.correct.trim().toLowerCase() ? '✓ Choice Auto-validated' : `✗ Inaccurate (Target correct: ${q.correct})`"></span>
+                                          </span>
+                                        </template>
+                                      </div>
+                                    </template>
+                                    <template x-if="!item.examAnswers || item.examAnswers[idx] === undefined || item.examAnswers[idx] === ''">
+                                      <span class="italic text-slate-400">&bull; No input recorded</span>
+                                    </template>
+                                  </div>
+                                </div>
+                              </template>
+                            </div>
+
+                            <!-- Grading Controls -->
+                            <div class="p-4 bg-white border border-slate-200 rounded-xl flex flex-col justify-between shadow-2xs">
+                              <div class="space-y-4">
+                                <span class="text-[9px] font-black text-slate-400 uppercase tracking-widest block border-b border-slate-100 pb-1.5">MARK BOOK ASSESSMENT</span>
+                                
+                                <div class="space-y-2">
+                                  <div class="flex items-center justify-between text-xs">
+                                    <span class="font-bold text-slate-600">Assigned Score:</span>
+                                    <span class="font-mono font-black text-indigo-700 bg-indigo-50 border border-indigo-100 px-2.5 py-0.5 rounded" x-text="`${manualScore}%`"></span>
+                                  </div>
+                                  <input 
+                                    type="range" 
+                                    min="0" 
+                                    max="100" 
+                                    x-model="manualScore" 
+                                    :disabled="graded"
+                                    class="w-full text-indigo-600 cursor-pointer disabled:opacity-40"
+                                  >
+                                </div>
+
+                                <!-- Feedback Comment -->
+                                <div>
+                                  <label class="block text-[10px] font-bold text-slate-500 uppercase mb-1">Feedback Comments Box</label>
+                                  <textarea 
+                                    x-model="feedbackText" 
+                                    :disabled="graded"
+                                    class="w-full px-2.5 py-2 border border-slate-200 focus:ring-1 focus:ring-indigo-500/10 focus:border-indigo-400 outline-none text-xs font-semibold text-slate-800 rounded-lg max-h-20 disabled:bg-slate-50 disabled:text-slate-450"
+                                    placeholder="Enter private qualitative commentary..."
+                                  ></textarea>
+                                </div>
+                              </div>
+
+                              <button 
+                                @click="graded = true"
+                                :disabled="graded"
+                                class="w-full py-2.5 mt-4 bg-indigo-50 hover:bg-indigo-100 hover:border-indigo-300 text-indigo-700 font-bold border border-indigo-200 rounded-xl text-xs transition-colors uppercase tracking-widest disabled:bg-slate-100 disabled:border-slate-200 disabled:text-slate-400 cursor-pointer outline-none"
+                              >
+                                <span x-text="graded ? 'Grade Locked ✓' : 'Seal Student Marks'"></span>
+                              </button>
+                            </div>
+                          </div>
+
+                        </div>
+                      </template>
+                    </div>
+                  </div>
+
+                </div>
+              </template>
+
+            </div>
+          </template>
+
+        </div>
+      </template>
+    </main>
+
+    <!-- Global Footer -->
+    <footer class="py-6 border-t border-slate-200 bg-white">
+      <div class="max-w-7xl mx-auto px-4 text-center text-xs text-slate-450 text-slate-500 font-medium">
+        Interactive peer environment &bull; Created for educators &bull; Fully static client engine.
+      </div>
+    </footer>
+
+    <!-- INSTRUCTOR PASSCODE MODAL (GATE POPUP) -->
+    <div 
+      class="fixed inset-0 bg-slate-900/40 backdrop-blur-md flex items-center justify-center z-50 p-4 transition-all"
+      x-show="showSecretPopup"
+      @keydown.escape.window="showSecretPopup = false"
+      x-transition:enter="transition ease-out duration-300"
+      x-transition:enter-start="opacity-0 tracking-wide"
+      x-transition:enter-end="opacity-100"
+      x-transition:leave="transition ease-in duration-200"
+      x-transition:leave-start="opacity-100"
+      x-transition:leave-end="opacity-0"
+      x-cloak
+    >
+      <div 
+        class="bg-white rounded-2xl border border-slate-200 shadow-2xl p-6 max-w-sm w-full transform overflow-hidden"
+        @click.away="showSecretPopup = false"
+        x-transition:enter="transition ease-out duration-300"
+        x-transition:enter-start="scale-95 translate-y-4"
+        x-transition:enter-end="scale-100 translate-y-0"
+        x-transition:leave="transition ease-in duration-200"
+        x-transition:leave-start="scale-100 translate-y-0"
+        x-transition:leave-end="scale-95 translate-y-4"
+      >
+        <div class="flex items-center gap-3.5 mb-4 border-b border-slate-100 pb-3">
+          <div class="w-10 h-10 rounded-lg bg-indigo-50 border border-indigo-100 text-indigo-600 flex items-center justify-center shadow-sm">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+            </svg>
+          </div>
+          <div>
+            <h3 class="text-base font-bold text-slate-900 leading-tight">Secret Instructor Gate</h3>
+            <p class="text-slate-400 text-xs mt-0.5">Validate authentication to activate Hosting Console.</p>
+          </div>
+        </div>
+
+        <form @submit.prevent="submitSecretPassword" class="space-y-4">
+          <div>
+            <label class="block text-[10px] font-bold uppercase tracking-wider text-slate-500 mb-1.5">Enter Master Passphrase</label>
+            <input 
+              type="password" 
+              required 
+              x-ref="passwordInput"
+              x-model="secretPassword" 
+              :class="popupError ? 'border-rose-300 ring-rose-200/50 focus:border-rose-400' : 'border-slate-200 focus:border-indigo-500 focus:ring-indigo-500/10'"
+              class="w-full px-3 py-2 bg-slate-50 border rounded-xl text-center font-semibold text-lg outline-none transition-all placeholder:text-slate-305 focus:bg-white focus:ring-2" 
+              placeholder="••••"
+              autocomplete="current-password"
+            >
+          </div>
+
+          <!-- Failed Attempt Warning -->
+          <template x-if="popupError">
+            <div class="text-xs text-rose-600 font-bold text-center bg-rose-50 border border-rose-100 rounded-lg p-2 animate-bounce">
+              Master phrase incorrect. Try again!
+            </div>
+          </template>
+
+          <div class="flex gap-2 justify-end pt-2">
+            <button 
+              type="button" 
+              @click="showSecretPopup = false; secretPassword = ''" 
+              class="px-4 py-2 text-xs font-semibold text-slate-550 text-slate-600 hover:bg-slate-50 rounded-lg transition-colors"
+            >
+              Cancel Access
+            </button>
+            <button 
+              type="submit" 
+              class="bg-indigo-600 hover:bg-indigo-700 text-white font-semibold text-xs px-4 py-2 rounded-lg border border-indigo-700 shadow-sm transition-colors cursor-pointer"
+            >
+              Authorize Setup
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <!-- Application Controller logic -->
+    <script>
+      document.addEventListener('alpine:init', () => {
+        Alpine.data('classroomApp', () => ({
+          role: 'lobby',
+          titleClicks: 0,
+          showSecretPopup: false,
+          secretPassword: '',
+          popupError: false,
+
+          studentName: '',
+          classCodeInput: '',
+
+          studentPeer: null,
+          studentConn: null,
+          connectionStatus: 'disconnected', 
+          connectionError: '',
+          activeQuestion: null,
+          studentAnswer: '',
+          answerSubmitted: false,
+          aiPromptTemplate: `Generate exam questions. Format as a JSON array:
+[
+  { "text": "Question text?", "type": "mcq", "options": ["Option A", "Option B", "Option C"], "correct": "Option A" },
+  { "text": "Explain concept X.", "type": "text", "options": [], "correct": "" }
+]`,
+          jsonImportInput: '',
+          copyAIPrompt() {
+             navigator.clipboard.writeText(this.aiPromptTemplate);
+             alert('Prompt copied to clipboard!');
+          },
+          importCustomExamQuestions() {
+            try {
+              const parsed = JSON.parse(this.jsonImportInput);
+              if (!Array.isArray(parsed)) throw new Error('Not an array');
+              this.customExamQuestions = parsed.map((q, idx) => ({
+                id: Date.now() + idx,
+                text: q.text || '',
+                type: q.type || 'text',
+                options: q.options || ['', '', '', ''],
+                correct: q.correct || ''
+              }));
+              this.jsonImportInput = '';
+              alert('Imported successfully!');
+            } catch (e) {
+              alert('Invalid JSON format. Please check the prompt format.');
+            }
+          },
+          lastSubmittedAnswer: '',
+
+          teacherPeer: null,
+          teacherClassCode: '',
+          teacherConnections: {}, 
+          students: [], 
+          copied: false,
+          newQuestionInput: '',
+          currentTeacherQuestion: null,
+
+          // Exam and Progress check states
+          activeMode: 'single', // 'single' or 'exam'
+          currentTeacherExam: null, // the active parsed exam template
+          examStep: 'catalog', // 'catalog', 'builder', 'live', 'results'
+          customExamTitle: 'Classroom Progress Quiz',
+          customExamQuestions: [
+            { id: 1, text: 'Explain the difference between vertical vs horizontal centering in CSS grid.', type: 'text', options: [], correct: '' },
+            { id: 2, text: 'Which tag renders an unnumbered bullet list?', type: 'mcq', options: ['<ol>', '<ul>', '<li>', '<list>'], correct: '<ul>' }
+          ],
+          premadeExams: [
+            {
+              id: 'premade-fe',
+              title: 'Frontend Fundamentals Exam',
+              questions: [
+                { id: 1, text: 'Which layout model is strictly designed for full 2-dimensional grid structures?', type: 'mcq', options: ['CSS Grid', 'Flexbox', 'Floats', 'Block Flow'], correct: 'CSS Grid' },
+                { id: 2, text: 'Explain what the event loop in JavaScript accomplishes.', type: 'text', options: [], correct: '' },
+                { id: 3, text: 'Which tag initiates an interactive client-side form submit or custom trigger?', type: 'mcq', options: ['<div>', '<form>', '<button>', '<a>'], correct: '<button>' }
+              ]
+            },
+            {
+              id: 'premade-se',
+              title: 'CS Core: Algorithms & REST checkup',
+              questions: [
+                { id: 1, text: 'What is the average runtime complexity of building a Balanced BST or traversing it?', type: 'mcq', options: ['O(n)', 'O(log n)', 'O(n log n)', 'O(n²)'], correct: 'O(log n)' },
+                { id: 2, text: 'Which standard HTTP status code is sent when requested index or endpoint resource is missing?', type: 'mcq', options: ['200 OK', '403 Forbidden', '404 Not Found', '500 Server Error'], correct: '404 Not Found' },
+                { id: 3, text: 'Give one security reason why hashing is used for user password storage.', type: 'text', options: [], correct: '' }
+              ]
+            }
+          ],
+          activeExam: null, // student active exam model
+          studentExamAnswers: {}, // student responses
+          studentExamSubmitted: false, // student lock state
+
+          init() {
+            console.log('Classroom system fully booted!');
+          },
+
+          handleTitleClick() {
+            if (this.role === 'teacher') return;
+            this.titleClicks++;
+            if (this.titleClicks >= 3) {
+              this.titleClicks = 0;
+              this.showSecretPopup = true;
+              this.$nextTick(() => {
+                if (this.$refs.passwordInput) {
+                  this.$refs.passwordInput.focus();
+                }
+              });
+            }
+          },
+
+          submitSecretPassword() {
+            if (this.secretPassword.toLowerCase() === 'teach') {
+              this.showSecretPopup = false;
+              this.secretPassword = '';
+              this.enterTeacherMode();
+            } else {
+              this.popupError = true;
+              this.secretPassword = '';
+              setTimeout(() => { this.popupError = false; }, 2000);
+            }
+          },
+
+          enterTeacherMode() {
+            this.role = 'teacher';
+            this.initTeacherPeer();
+          },
+
+          initTeacherPeer() {
+            const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+            let code = '';
+            for (let i = 0; i < 4; i++) {
+              code += chars.charAt(Math.floor(Math.random() * chars.length));
+            }
+            this.teacherClassCode = 'STUDY-' + code;
+
+            this.teacherPeer = new Peer(this.teacherClassCode);
+
+            this.teacherPeer.on('connection', (conn) => {
+              this.teacherConnections[conn.peer] = conn;
+              this.addOrUpdateStudent(conn.peer, { connected: true });
+
+              conn.on('open', () => {
+                if (this.currentTeacherQuestion) {
+                  conn.send({ type: 'QUESTION', payload: this.currentTeacherQuestion });
+                }
+                if (this.currentTeacherExam) {
+                  conn.send({ type: 'EXAM_START', payload: this.currentTeacherExam });
+                }
+              });
+
+              conn.on('data', (data) => {
+                if (data.type === 'HANDSHAKE') {
+                  this.addOrUpdateStudent(conn.peer, { name: data.name, connected: true });
+                } else if (data.type === 'ANSWER') {
+                  this.addOrUpdateStudent(conn.peer, { answer: data.answer });
+                } else if (data.type === 'EXAM_PROGRESS') {
+                  this.addOrUpdateStudent(conn.peer, { examAnswers: data.answers || {}, examSubmitted: false });
+                } else if (data.type === 'EXAM_SUBMIT') {
+                  this.addOrUpdateStudent(conn.peer, { examAnswers: data.answers || {}, examSubmitted: true });
+                }
+              });
+
+              const handleDisconnect = () => {
+                this.addOrUpdateStudent(conn.peer, { connected: false });
+                delete this.teacherConnections[conn.peer];
+              };
+
+              conn.on('close', handleDisconnect);
+              conn.on('error', handleDisconnect);
+            });
+          },
+
+          addOrUpdateStudent(id, data) {
+            const idx = this.students.findIndex(s => s.id === id);
+            if (idx !== -1) {
+              this.students[idx] = { ...this.students[idx], ...data };
+            } else {
+              this.students.push({
+                id: id,
+                name: data.name || 'Unknown Student',
+                connected: data.connected !== undefined ? data.connected : true,
+                answer: data.answer || null,
+                examAnswers: data.examAnswers || {},
+                examSubmitted: data.examSubmitted || false
+              });
+            }
+            this.students = [...this.students];
+          },
+
+          sendQuestion() {
+            if (!this.newQuestionInput.trim()) return;
+            this.currentTeacherQuestion = this.newQuestionInput.trim();
+
+            this.students = this.students.map(s => ({ ...s, answer: null }));
+
+            Object.values(this.teacherConnections).forEach(conn => {
+              conn.send({ type: 'QUESTION', payload: this.currentTeacherQuestion });
+            });
+
+            this.newQuestionInput = '';
+          },
+
+          copyCode() {
+            navigator.clipboard.writeText(this.teacherClassCode);
+            this.copied = true;
+            setTimeout(() => { this.copied = false; }, 2000);
+          },
+
+          launchExam(examObj) {
+            this.students = this.students.map(s => ({
+              ...s,
+              examAnswers: {},
+              examSubmitted: false
+            }));
+            this.currentTeacherExam = JSON.parse(JSON.stringify(examObj));
+            this.examStep = 'live';
+
+            Object.values(this.teacherConnections).forEach(conn => {
+              conn.send({ type: 'EXAM_START', payload: this.currentTeacherExam });
+            });
+          },
+
+          stopActiveExam() {
+            this.examStep = 'results';
+            Object.values(this.teacherConnections).forEach(conn => {
+              conn.send({ type: 'EXAM_STOP' });
+            });
+          },
+
+          resetExamMode() {
+            this.currentTeacherExam = null;
+            this.examStep = 'catalog';
+          },
+
+          addCustomExamQuestion() {
+            const nextId = this.customExamQuestions.length + 1;
+            this.customExamQuestions.push({
+              id: nextId,
+              text: '',
+              type: 'mcq',
+              options: ['', '', '', ''],
+              correct: ''
+            });
+          },
+
+          removeCustomExamQuestion(index) {
+            this.customExamQuestions.splice(index, 1);
+            this.customExamQuestions.forEach((q, idx) => { q.id = idx + 1; });
+          },
+
+          launchCustomExam() {
+            const validQuestions = this.customExamQuestions.filter(q => q.text.trim().length > 0);
+            if (validQuestions.length === 0) return;
+
+            const examObj = {
+              title: this.customExamTitle.trim() || 'Custom Progress Check',
+              questions: validQuestions.map((q, idx) => ({
+                id: idx + 1,
+                text: q.text.trim(),
+                type: q.type,
+                options: q.type === 'mcq' ? q.options.filter(o => o.trim() !== '') : [],
+                correct: q.type === 'mcq' ? (q.correct || q.options[0]) : ''
+              }))
+            };
+            this.launchExam(examObj);
+          },
+
+          joinAsStudent() {
+            if (!this.studentName.trim() || !this.classCodeInput.trim()) return;
+
+            this.connectionStatus = 'connecting';
+            this.connectionError = '';
+
+            const teacherCodeName = this.classCodeInput.trim().toUpperCase();
+            this.studentPeer = new Peer();
+
+            this.studentPeer.on('open', (id) => {
+              const conn = this.studentPeer.connect(teacherCodeName);
+              this.studentConn = conn;
+
+              conn.on('open', () => {
+                this.connectionStatus = 'connected';
+                this.role = 'student';
+                conn.send({ type: 'HANDSHAKE', name: this.studentName.trim() });
+              });
+
+              conn.on('data', (data) => {
+                if (data.type === 'QUESTION') {
+                  this.activeQuestion = data.payload;
+                  this.studentAnswer = '';
+                  this.answerSubmitted = false;
+                  this.activeExam = null;
+                } else if (data.type === 'EXAM_START') {
+                  this.activeExam = data.payload;
+                  this.studentExamAnswers = {};
+                  this.studentExamSubmitted = false;
+                  this.activeQuestion = null;
+                } else if (data.type === 'EXAM_STOP') {
+                  this.studentExamSubmitted = true;
+                }
+              });
+
+              const handleDisconnect = () => {
+                this.connectionStatus = 'disconnected';
+                this.connectionError = 'The teacher ended the session or lost connection.';
+              };
+
+              conn.on('close', handleDisconnect);
+              conn.on('error', handleDisconnect);
+            });
+
+            this.studentPeer.on('error', (err) => {
+              if (err.type === 'peer-unavailable') {
+                this.connectionError = 'Room code not found. Please verify the code!';
+              } else {
+                this.connectionError = 'Connection failed: ' + err.message;
+              }
+              this.connectionStatus = 'error';
+            });
+          },
+
+          submitStudentAnswer() {
+            if (!this.studentAnswer.trim() || !this.studentConn) return;
+
+            this.studentConn.send({ type: 'ANSWER', answer: this.studentAnswer.trim() });
+            this.lastSubmittedAnswer = this.studentAnswer.trim();
+            this.answerSubmitted = true;
+          },
+
+          updateExamAnswer(qIdx, val) {
+            this.studentExamAnswers[qIdx] = val;
+            if (this.studentConn) {
+              this.studentConn.send({
+                type: 'EXAM_PROGRESS',
+                answers: this.studentExamAnswers
+              });
+            }
+          },
+
+          submitStudentExam() {
+            if (this.studentConn) {
+              this.studentConn.send({
+                type: 'EXAM_SUBMIT',
+                answers: this.studentExamAnswers
+              });
+              this.studentExamSubmitted = true;
+            }
+          },
+
+          getStudentExamProgressCount() {
+            if (!this.activeExam) return 0;
+            let answered = 0;
+            this.activeExam.questions.forEach((q, idx) => {
+              if (this.studentExamAnswers[idx] !== undefined && this.studentExamAnswers[idx] !== '') {
+                answered++;
+              }
+            });
+            return answered;
+          },
+
+          isStudentExamComplete() {
+            if (!this.activeExam) return false;
+            return this.getStudentExamProgressCount() === this.activeExam.questions.length;
+          },
+
+          numConnectedStudents() {
+            return this.students.filter(s => s.connected).length;
+          },
+
+          numAnswersSubmitted() {
+            return this.students.filter(s => s.connected && s.answer).length;
+          }
+        }));
+      });
+    </script>
+  </body>
+</html>

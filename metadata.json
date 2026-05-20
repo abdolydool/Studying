@@ -1,0 +1,8 @@
+{
+  "name": "Classroom Real-Time Response",
+  "description": "A real-time study tool for a teacher and students using PeerJS. Click title 3 times to become teacher.",
+  "requestFramePermissions": [],
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}
