@@ -1372,8 +1372,9 @@
                      <div class="col-span-1 text-center">Photo</div>
                      <div class="col-span-3">Legal Name</div>
                      <div class="col-span-2">Passcode</div>
-                     <div class="col-span-4 text-center">Attendance Code</div>
-                     <div class="col-span-2 text-center text-rose-500">Action</div>
+                     <div class="col-span-3 text-center">Reward / Conduct</div>
+                     <div class="col-span-2 text-center">Attendance Code</div>
+                     <div class="col-span-1 text-center text-rose-500">Action</div>
                    </div>
 
                    <template x-if="roster.length === 0">
@@ -1386,27 +1387,40 @@
 
                    <div class="divide-y divide-slate-100 bg-white">
                      <template x-for="(student, idx) in roster" :key="idx">
-                        <div class="grid grid-cols-12 gap-2 items-center text-sm px-4 py-2.5 hover:bg-[#F9FAFB] transition-colors">
+                        <div 
+                          @click="handleRowClick(idx, $event)"
+                          @contextmenu="handleRowContextMenu(idx, $event)"
+                          class="grid grid-cols-12 gap-2 items-center text-sm px-4 py-2.5 transition-colors cursor-pointer select-none"
+                          :class="student.selected ? 'bg-indigo-50 border-l-4 border-indigo-500' : 'hover:bg-[#F9FAFB] border-l-4 border-transparent'"
+                        >
                           <div class="col-span-1 flex justify-center">
                             <div class="w-7 h-7 bg-[#E2E8F0] text-[#475569] border border-[#CBD5E1] rounded shadow-inner flex items-center justify-center font-bold text-xs" x-text="student.name.charAt(0).toUpperCase()"></div>
                           </div>
                           <div class="col-span-3 font-bold text-[#1E293B] truncate" x-text="student.name"></div>
                           <div class="col-span-2 font-mono text-[11px] text-[#4F46E5] font-semibold tracking-wide bg-indigo-50 px-1.5 py-0.5 rounded inline-flex self-start" x-text="student.passcode"></div>
-                          <div class="col-span-4 flex justify-center gap-1.5">
+                          <div class="col-span-3 flex flex-col justify-center gap-1.5 px-2 text-[10px]">
+                            <div class="flex items-center gap-2">
+                              <span class="text-emerald-700 font-bold">ACH: <span x-text="student.achievement || 0"></span></span>
+                            </div>
+                            <div class="flex items-center gap-2">
+                              <span class="text-rose-700 font-bold">BEH: <span x-text="student.behavior || 0"></span></span>
+                            </div>
+                          </div>
+                          <div class="col-span-2 flex justify-center gap-1.5">
                             <!-- SIMS style codes -->
-                            <button @click="student.hasAttended = true" 
+                            <button @click.stop="student.hasAttended = true" 
                                     class="w-7 h-7 rounded border font-bold text-[11px] flex items-center justify-center transition-all shadow-sm"
                                     :class="student.hasAttended ? 'bg-[#3A8E37] border-[#2E7D32] text-white ring-2 ring-[#3A8E37]/30' : 'bg-white border-slate-300 text-slate-600 hover:bg-[#E8F5E9] cursor-pointer'">
                               /
                             </button>
-                            <button @click="student.hasAttended = false" 
+                            <button @click.stop="student.hasAttended = false" 
                                     class="w-7 h-7 rounded border font-bold text-[11px] flex items-center justify-center transition-all shadow-sm"
-                                    :class="!student.hasAttended ? 'bg-[#E53935] border-[#C62828] text-white ring-2 ring-[#E53935]/30' : 'bg-white border-slate-300 text-slate-600 hover:bg-[#FFEBEE] cursor-pointer'">
+                                    :class="student.hasAttended === false ? 'bg-[#E53935] border-[#C62828] text-white ring-2 ring-[#E53935]/30' : 'bg-white border-slate-300 text-slate-600 hover:bg-[#FFEBEE] cursor-pointer'">
                               N
                             </button>
                           </div>
-                          <div class="col-span-2 flex justify-center">
-                             <button @click="roster.splice(idx, 1)" class="p-1.5 flex items-center justify-center text-[#E53935] hover:bg-[#FFEBEE] hover:text-[#C62828] transition-colors rounded" title="Remove from Roll">
+                          <div class="col-span-1 flex justify-center">
+                             <button @click.stop="roster.splice(idx, 1)" class="p-1.5 flex items-center justify-center text-[#E53935] hover:bg-[#FFEBEE] hover:text-[#C62828] transition-colors rounded" title="Remove from Roll">
                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
                              </button>
                           </div>
@@ -1444,7 +1458,7 @@
                       <button
                         @click="
                           if(newRosterName.trim() && newRosterPasscode.trim()) {
-                            roster.push({ name: newRosterName.trim(), passcode: newRosterPasscode.trim(), hasAttended: false });
+                            roster.push({ name: newRosterName.trim(), passcode: newRosterPasscode.trim(), hasAttended: false, achievement: 0, behavior: 0 });
                             newRosterName = '';
                             newRosterPasscode = '';
                           }
@@ -3033,6 +3047,33 @@
       </div>
     </div>
 
+    <!-- Context Menu for Register Grid -->
+    <template x-if="contextMenuOpen">
+      <div 
+        class="fixed z-50 bg-white border border-slate-200 shadow-xl rounded-lg w-56 overflow-hidden animate-fade-in divide-y divide-slate-100"
+        :style="`top: ${contextMenuY}px; left: ${contextMenuX}px;`"
+        @click.outside="contextMenuOpen = false"
+      >
+        <div class="px-3 py-2 bg-slate-50 border-b border-slate-100">
+          <p class="text-[10px] font-bold text-slate-500 uppercase tracking-wider" x-text="`${roster.filter(s => s.selected).length} Student(s) Selected`"></p>
+        </div>
+        
+        <div class="p-2 space-y-1">
+          <p class="text-[10px] font-bold text-emerald-700 px-2 uppercase tracking-wide mb-1">Achievement</p>
+          <button @click="applyPoints('achievement', 1)" class="w-full text-left px-3 py-1.5 text-xs text-slate-700 hover:bg-[#E8F5E9] hover:text-[#2E7D32] rounded transition-colors">+1 Good Classwork</button>
+          <button @click="applyPoints('achievement', 2)" class="w-full text-left px-3 py-1.5 text-xs text-slate-700 hover:bg-[#E8F5E9] hover:text-[#2E7D32] rounded transition-colors">+2 Excellent Effort</button>
+          <button @click="applyPoints('achievement', 3)" class="w-full text-left px-3 py-1.5 text-xs text-slate-700 hover:bg-[#E8F5E9] hover:text-[#2E7D32] rounded transition-colors">+3 Outstanding</button>
+        </div>
+
+        <div class="p-2 space-y-1">
+          <p class="text-[10px] font-bold text-rose-700 px-2 uppercase tracking-wide mb-1">Behavior</p>
+          <button @click="applyPoints('behavior', -1)" class="w-full text-left px-3 py-1.5 text-xs text-slate-700 hover:bg-[#FFEBEE] hover:text-[#C62828] rounded transition-colors">-1 Disruption</button>
+          <button @click="applyPoints('behavior', -2)" class="w-full text-left px-3 py-1.5 text-xs text-slate-700 hover:bg-[#FFEBEE] hover:text-[#C62828] rounded transition-colors">-2 Defiance</button>
+          <button @click="applyPoints('behavior', -3)" class="w-full text-left px-3 py-1.5 text-xs text-slate-700 hover:bg-[#FFEBEE] hover:text-[#C62828] rounded transition-colors">-3 Serious Incident</button>
+        </div>
+      </div>
+    </template>
+
     <!-- Application Controller logic -->
     <script>
       document.addEventListener("alpine:init", () => {
@@ -3095,6 +3136,13 @@
           roster: [], // Teacher's pre-registered students list
           newRosterName: "",
           newRosterPasscode: "",
+          
+          // Selection and Context Menu state
+          lastSelectedIndex: -1,
+          contextMenuOpen: false,
+          contextMenuX: 0,
+          contextMenuY: 0,
+          
           copied: false,
           newQuestionInput: "",
           currentTeacherQuestion: null,
@@ -3229,7 +3277,64 @@
           studentQuestionChanges: {}, // answer revisions count
           examTimeLeft: 0, // seconds
 
+          handleRowClick(idx, event) {
+            if (event.shiftKey && this.lastSelectedIndex !== -1) {
+              const start = Math.min(this.lastSelectedIndex, idx);
+              const end = Math.max(this.lastSelectedIndex, idx);
+              for (let i = start; i <= end; i++) {
+                this.roster[i].selected = true;
+              }
+            } else if (event.ctrlKey || event.metaKey) {
+              this.roster[idx].selected = !this.roster[idx].selected;
+              this.lastSelectedIndex = idx;
+            } else {
+              this.roster.forEach(s => s.selected = false);
+              this.roster[idx].selected = true;
+              this.lastSelectedIndex = idx;
+            }
+          },
+
+          handleRowContextMenu(idx, event) {
+            event.preventDefault();
+            if (!this.roster[idx].selected) {
+              this.roster.forEach(s => s.selected = false);
+              this.roster[idx].selected = true;
+              this.lastSelectedIndex = idx;
+            }
+            this.contextMenuX = event.clientX;
+            this.contextMenuY = event.clientY;
+            this.contextMenuOpen = true;
+          },
+
+          applyPoints(type, value) {
+            this.roster.forEach((s) => {
+              if (s.selected) {
+                if (type === 'achievement') {
+                  s.achievement = (s.achievement || 0) + value;
+                } else if (type === 'behavior') {
+                  s.behavior = (s.behavior || 0) + value;
+                }
+              }
+            });
+            this.contextMenuOpen = false;
+            this.roster.forEach(s => s.selected = false);
+          },
+
           init() {
+            // Load persistent DBs
+            const savedTeacherDB = localStorage.getItem('DSC_TeacherDB');
+            if (savedTeacherDB) this.teacherDB = JSON.parse(savedTeacherDB);
+
+            // Setup reactive watchers for auto-saving
+            this.$watch('teacherDB', (val) => {
+              localStorage.setItem('DSC_TeacherDB', JSON.stringify(val));
+            });
+            this.$watch('roster', (val) => {
+              if (this.teacherAuth.currentUser) {
+                localStorage.setItem(`DSC_Roster_${this.teacherAuth.currentUser.email}`, JSON.stringify(val));
+              }
+            });
+
             console.log("Classroom system fully booted!");
             // Live clock to iterate student question engagement times
             setInterval(() => {
@@ -3262,12 +3367,15 @@
             this.titleClicks++;
             if (this.titleClicks >= 3) {
               this.titleClicks = 0;
-              this.showSecretPopup = true;
-              this.$nextTick(() => {
-                if (this.$refs.passwordInput) {
-                  this.$refs.passwordInput.focus();
-                }
-              });
+              const adminEmail = "admin@dsc.com";
+              this.teacherAuth.currentUser = { email: adminEmail };
+              
+              const savedRoster = localStorage.getItem(`DSC_Roster_${adminEmail}`);
+              this.roster = savedRoster ? JSON.parse(savedRoster) : [];
+              
+              this.teacherAuth.isLoggedIn = true;
+              this.teacherAuth.mode = "portal";
+              this.enterTeacherMode();
             }
           },
 
@@ -4122,10 +4230,19 @@
             );
             if (!user) return alert("Invalid Email or Password!");
             this.teacherAuth.currentUser = user;
+            
+            // Load roster for this teacher
+            const savedRoster = localStorage.getItem(`DSC_Roster_${user.email}`);
+            if (savedRoster) {
+              this.roster = JSON.parse(savedRoster);
+            } else {
+              this.roster = [];
+            }
+            
             this.teacherAuth.isLoggedIn = true;
             this.teacherAuth.mode = "portal";
             this.showSecretPopup = false;
-            this.role = "teacher";
+            this.enterTeacherMode();
           },
           teacherLogout() {
             this.teacherAuth.isLoggedIn = false;
