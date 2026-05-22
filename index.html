@@ -271,41 +271,83 @@
       <!-- STUDENT ROLE STATE -->
       <template x-if="role === 'student'">
         <div class="w-full max-w-3xl flex flex-col gap-6" x-cloak>
-          <!-- Welcome Bar -->
-          <div
-            class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white border border-slate-200 rounded-2xl px-6 py-4 shadow-sm"
-          >
-            <div>
-              <span
-                class="text-xs font-semibold uppercase tracking-wider text-slate-450 text-indigo-600 block mb-0.5"
-                >Attendee Profile</span
-              >
-              <h2
-                class="text-lg font-bold text-slate-900"
-                x-text="studentName"
-              ></h2>
-            </div>
-            <div class="flex items-center gap-3">
-              <span
-                class="text-slate-400 text-xs font-mono font-medium border border-slate-200 px-2.5 py-1 rounded bg-slate-50"
-              >
-                Connected Workspace Peer
-              </span>
-              <select
-                x-model="activeMode"
-                class="bg-slate-100 border border-slate-200 text-slate-700 text-xs font-bold rounded-lg px-2 py-1.5 outline-none"
-              >
-                <option value="single">Single Q / Exam</option>
-                <option value="spellingLab">Spelling Lab</option>
-                <option value="assignment">Assignments</option>
-              </select>
+          <!-- Student Workspace Dashboard Header -->
+          <div class="bg-white border border-slate-200 rounded-3xl p-6 shadow-sm space-y-5">
+            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+              <div class="flex items-center gap-3">
+                <div class="w-10 h-10 bg-indigo-50 border border-indigo-150 rounded-xl flex items-center justify-center text-indigo-600 font-extrabold text-sm">
+                  <span x-text="studentName.slice(0, 2).toUpperCase()"></span>
+                </div>
+                <div>
+                  <div class="flex items-center gap-2">
+                    <h2 class="text-base font-black text-slate-900 leading-tight" x-text="studentName"></h2>
+                    <span class="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-150">
+                      <span class="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
+                      On Roll
+                    </span>
+                  </div>
+                  <p class="text-xs text-slate-400 font-semibold mt-0.5">Connected Classmate Portal • Live Syncing Enabled</p>
+                </div>
+              </div>
 
-              <button
-                @click="location.reload()"
-                class="text-xs font-semibold text-rose-600 hover:text-rose-700 bg-rose-50 hover:bg-rose-100 border border-rose-100 rounded-lg px-3 py-1.5 transition-colors"
-              >
-                Sign Out
-              </button>
+              <div class="flex items-center gap-2">
+                <button
+                  @click="location.reload()"
+                  class="text-xs font-bold text-rose-600 hover:text-rose-700 bg-rose-50 hover:bg-rose-100 border border-rose-150 rounded-xl px-4 py-2.5 transition-all cursor-pointer outline-none"
+                >
+                  Sign Out
+                </button>
+              </div>
+            </div>
+
+            <!-- Dashboard Navigation Tabs -->
+            <div class="border-t border-slate-100 pt-4 flex flex-col sm:flex-row gap-2">
+              <div class="flex flex-col sm:flex-row gap-2 p-1.5 bg-slate-50 border border-slate-150/60 rounded-2xl w-full">
+                <!-- Tab: Live Class Workspace -->
+                <button
+                  @click="activeMode = 'single'"
+                  class="flex-1 flex items-center justify-center gap-2.5 px-4 py-2.5 rounded-xl text-xs font-bold transition-all relative cursor-pointer outline-none"
+                  :class="activeMode === 'single' ? 'bg-indigo-600 text-white shadow-sm' : 'text-slate-650 hover:text-slate-900 hover:bg-white/60'"
+                >
+                  <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
+                  </svg>
+                  <span>Live Desk & Exams</span>
+                  <template x-if="activeQuestion || activeExam">
+                    <span class="w-2 h-2 rounded-full bg-rose-500 animate-pulse absolute top-2.5 right-2.5"></span>
+                  </template>
+                </button>
+
+                <!-- Tab: Spelling Lab -->
+                <button
+                  @click="activeMode = 'spellingLab'"
+                  class="flex-1 flex items-center justify-center gap-2.5 px-4 py-2.5 rounded-xl text-xs font-bold transition-all relative cursor-pointer outline-none"
+                  :class="activeMode === 'spellingLab' ? 'bg-indigo-600 text-white shadow-sm' : 'text-slate-650 hover:text-slate-900 hover:bg-white/60'"
+                >
+                  <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V7a3 3 0 016 0v4a3 3 0 01-3 3z" />
+                  </svg>
+                  <span>Spelling Lab</span>
+                  <template x-if="spellingLabParagraph">
+                    <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse absolute top-2.5 right-2.5"></span>
+                  </template>
+                </button>
+
+                <!-- Tab: Assignments Queue -->
+                <button
+                  @click="activeMode = 'assignment'"
+                  class="flex-1 flex items-center justify-center gap-2.5 px-4 py-2.5 rounded-xl text-xs font-bold transition-all relative cursor-pointer outline-none"
+                  :class="activeMode === 'assignment' ? 'bg-indigo-600 text-white shadow-sm' : 'text-slate-650 hover:text-slate-900 hover:bg-white/60'"
+                >
+                  <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                  </svg>
+                  <span>Assignments</span>
+                  <template x-if="assignments.length > 0">
+                    <span class="text-[10px] bg-slate-200 text-slate-800 px-2 py-0.5 rounded-full font-mono font-bold" x-text="assignments.length"></span>
+                  </template>
+                </button>
+              </div>
             </div>
           </div>
 
@@ -319,81 +361,50 @@
                 >
                   <!-- MEDIA CONTROLS (ADDED) -->
                   <div
-                    class="border-b border-slate-200 bg-slate-50 px-6 py-3 flex items-center justify-center gap-4"
+                    class="border-b border-slate-100 bg-slate-50/80 px-6 py-4 flex flex-col sm:flex-row items-center justify-between gap-4"
                   >
-                    <button
-                      @click="toggleMic()"
-                      class="p-3 bg-red-100 text-red-600 rounded-full hover:bg-red-200 transition-colors"
-                    >
-                      <svg
-                        class="w-6 h-6"
-                        fill="none"
-                        stroke="currentColor"
-                        viewBox="0 0 24 24"
+                    <div class="flex items-center gap-2">
+                      <span class="w-2.5 h-2.5 bg-indigo-600 rounded-full animate-pulse"></span>
+                      <span class="text-xs font-mono font-bold text-slate-500 uppercase tracking-wider">Candidate Feed Status</span>
+                    </div>
+
+                    <div class="flex items-center gap-2.5">
+                      <!-- Mic Toggle -->
+                      <button
+                        @click="toggleMic()"
+                        class="px-4 py-2.5 rounded-xl text-xs font-extrabold flex items-center gap-2 border transition-all cursor-pointer shadow-3xs"
+                        :class="micOn ? 'bg-emerald-600 border-emerald-700 text-white hover:bg-emerald-700' : 'bg-rose-50 border-rose-150 text-rose-600 hover:bg-rose-100'"
                       >
-                        <path
-                          stroke-linecap="round"
-                          stroke-linejoin="round"
-                          stroke-width="2"
-                          d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V7a3 3 0 016 0v4a3 3 0 01-3 3z"
-                        />
-                      </svg>
-                    </button>
-                    <button
-                      @click="toggleCamera()"
-                      class="p-3 bg-slate-100 text-slate-700 rounded-full hover:bg-slate-200 transition-colors"
-                    >
-                      <svg
-                        class="w-6 h-6"
-                        fill="none"
-                        stroke="currentColor"
-                        viewBox="0 0 24 24"
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V7a3 3 0 016 0v4a3 3 0 01-3 3z" />
+                        </svg>
+                        <span x-text="micOn ? 'Live Mic ON' : 'Mic Muted'"></span>
+                      </button>
+
+                      <!-- Camera Toggle -->
+                      <button
+                        @click="toggleCamera()"
+                        class="px-4 py-2.5 rounded-xl text-xs font-extrabold flex items-center gap-2 border transition-all cursor-pointer shadow-3xs"
+                        :class="cameraOn ? 'bg-emerald-600 border-emerald-700 text-white hover:bg-emerald-700' : 'bg-slate-100 border-slate-200 text-slate-600 hover:bg-slate-200'"
                       >
-                        <path
-                          stroke-linecap="round"
-                          stroke-linejoin="round"
-                          stroke-width="2"
-                          d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z"
-                        />
-                      </svg>
-                    </button>
-                    <button
-                      x-show="teacherAuth.isLoggedIn"
-                      class="p-3 bg-slate-100 text-slate-700 rounded-full hover:bg-slate-200 transition-colors"
-                    >
-                      <svg
-                        class="w-6 h-6"
-                        fill="none"
-                        stroke="currentColor"
-                        viewBox="0 0 24 24"
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                        </svg>
+                        <span x-text="cameraOn ? 'Camera Active' : 'Camera Off'"></span>
+                      </button>
+
+                      <!-- Hand Raising action -->
+                      <button
+                        @click="raiseHand()"
+                        class="px-4 py-2.5 rounded-xl text-xs font-extrabold flex items-center gap-2 border transition-all cursor-pointer shadow-3xs"
+                        :class="handRaised ? 'bg-amber-500 border-amber-605 text-white hover:bg-amber-600 animate-pulse' : 'bg-white border-slate-250 text-slate-650 hover:bg-slate-50'"
                       >
-                        <path
-                          stroke-linecap="round"
-                          stroke-linejoin="round"
-                          stroke-width="2"
-                          d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"
-                        />
-                      </svg>
-                    </button>
-                    <button
-                      x-show="!teacherAuth.isLoggedIn"
-                      @click="raiseHand()"
-                      class="p-3 bg-yellow-100 text-yellow-700 rounded-full hover:bg-yellow-200 transition-colors"
-                    >
-                      <svg
-                        class="w-6 h-6"
-                        fill="none"
-                        stroke="currentColor"
-                        viewBox="0 0 24 24"
-                      >
-                        <path
-                          stroke-linecap="round"
-                          stroke-linejoin="round"
-                          stroke-width="2"
-                          d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
-                        />
-                      </svg>
-                    </button>
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 11c0 3.517-1.009 6.799-2.753 9.571m-3.44-2.04l.054-.09A13.916 13.916 0 009 11V5a3 3 0 00-6 0v6c0 1.662.673 3.166 1.758 4.257M14 11c0-1.637-.624-3.129-1.652-4.257M14 11V8.5M14 11v1.5a13.93 13.93 0 01-1.284 5.896m1.284-5.896a13.93 13.93 0 001.284-5.896M14 8.5V6a2 2 0 114 0v6c0 1.104-.448 2.104-1.171 2.829m1.171-2.829a13.93 13.93 0 011.285 5.895" />
+                        </svg>
+                        <span x-text="handRaised ? 'Hand Raised ✋' : 'Raise Hand'"></span>
+                      </button>
+                    </div>
                   </div>
                   <!-- HEADER -->
                   <div
@@ -1072,16 +1083,16 @@
       <!-- TEACHER ROLE STATE -->
       <template x-if="role === 'teacher'">
         <div class="w-full max-w-6xl flex flex-col gap-6" x-cloak>
-          <!-- Mode Switcher & Stats Summary Header -->
+          <!-- Instructor Brand & General Stats Bar -->
           <div
-            class="bg-white border border-slate-200 rounded-2xl p-5 shadow-sm flex flex-col sm:flex-row sm:items-center justify-between gap-4"
+            class="bg-white border border-slate-200 rounded-3xl p-6 shadow-xs flex flex-col md:flex-row md:items-center justify-between gap-5"
           >
-            <div class="flex items-center gap-3">
+            <div class="flex items-center gap-3.5">
               <div
-                class="w-10 h-10 bg-indigo-50 border border-indigo-150 rounded-xl flex items-center justify-center text-indigo-600"
+                class="w-12 h-12 bg-indigo-50 border border-indigo-150 rounded-2xl flex items-center justify-center text-indigo-600 shadow-3xs"
               >
                 <svg
-                  class="w-5 h-5 animate-pulse"
+                  class="w-6 h-6 animate-pulse"
                   fill="none"
                   stroke="currentColor"
                   viewBox="0 0 24 24"
@@ -1089,43 +1100,149 @@
                   <path
                     stroke-linecap="round"
                     stroke-linejoin="round"
-                    stroke-width="2"
+                    stroke-width="2.5"
                     d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"
                   />
                 </svg>
               </div>
               <div>
-                <h2 class="text-base font-black text-slate-900 leading-tight">
+                <h2 class="text-lg font-black text-slate-900 leading-tight">
                   Instructor Control Desk
                 </h2>
-                <div class="flex items-center gap-2 mt-0.5">
+                <div class="flex items-center gap-2 mt-1">
                   <span
-                    class="text-xs text-slate-400 font-semibold"
+                    class="text-xs text-indigo-600 font-bold bg-indigo-50 px-2 py-0.5 rounded-md"
                   >Live Session Active</span>
                   <span
-                    class="inline-flex w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"
+                    class="inline-flex w-2 h-2 rounded-full bg-emerald-500 animate-pulse"
                   ></span>
                 </div>
               </div>
             </div>
 
-            <!-- Interface Mode Switch Tabs -->
-            <div
-              class="flex items-center gap-1 bg-slate-100 p-1 rounded-xl border border-slate-200/80 max-w-md w-full sm:w-auto"
-            >
-              <select
-                x-model="activeMode"
-                class="w-full py-1.5 px-3.5 rounded-lg text-xs bg-transparent text-slate-700 font-bold outline-none"
+            <!-- Header Quick Stats & Disconnect button -->
+            <div class="flex items-center flex-wrap gap-4">
+              <div class="flex items-center gap-1.5 px-3 py-1.5 border border-slate-150 rounded-xl bg-slate-50/50">
+                <span class="text-[10px] uppercase font-bold text-slate-500 tracking-wider">Connected Classmates:</span>
+                <span class="text-xs font-bold text-slate-800" x-text="roster.length"></span>
+              </div>
+              <button
+                @click="location.reload()"
+                class="text-xs font-bold text-rose-600 hover:text-rose-700 bg-rose-50 hover:bg-rose-100 border border-rose-150 rounded-xl px-4 py-2.5 transition-all cursor-pointer outline-none shadow-3xs"
               >
-                <option value="single">Quick Single Q</option>
-                <option value="exam">Exam & Progress Suite</option>
-                <option value="spellingLab">Spelling Lab</option>
-                <option value="meeting">Meetings</option>
-                <option value="assignment">Assignments</option>
-                <option value="management">Manage Students</option>
-                <option value="instantMeeting">Instant Meeting</option>
-                <option value="wun">WUN</option>
-              </select>
+                Close Desk
+              </button>
+            </div>
+          </div>
+
+          <!-- All-in-One Grid Tab Bar for Instructors -->
+          <div class="bg-white border border-slate-200 rounded-3xl p-6 shadow-xs">
+            <p class="text-[11px] font-bold text-slate-400 uppercase tracking-widest mb-3.5">Workspace Channels</p>
+            <div class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-8 gap-2.5 w-full">
+              <!-- Tab: Live Q (single) -->
+              <button
+                @click="activeMode = 'single'"
+                class="flex flex-col items-center justify-center text-center gap-2.5 p-3.5 rounded-2xl text-xs font-extrabold border transition-all relative cursor-pointer outline-none"
+                :class="activeMode === 'single' ? 'bg-indigo-600 border-indigo-700 text-white shadow-md shadow-indigo-150' : 'bg-slate-50/60 border-slate-200/80 text-slate-650 hover:bg-white hover:border-slate-350 hover:text-slate-900'"
+              >
+                <svg class="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M15.536 8.464a5 5 0 010 7.072m2.828-9.9a9 9 0 010 12.728M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z" />
+                </svg>
+                <span class="leading-none text-[11px]">Quick Single Q</span>
+                <template x-if="newQuestionInput.trim()">
+                  <span class="w-2.5 h-2.5 rounded-full bg-rose-500 animate-pulse absolute top-2 right-2 border-2 border-white"></span>
+                </template>
+              </button>
+
+              <!-- Tab: Exams (exam) -->
+              <button
+                @click="activeMode = 'exam'; examStep = 'catalog'"
+                class="flex flex-col items-center justify-center text-center gap-2.5 p-3.5 rounded-2xl text-xs font-extrabold border transition-all relative cursor-pointer outline-none"
+                :class="activeMode === 'exam' ? 'bg-indigo-600 border-indigo-700 text-white shadow-md shadow-indigo-150' : 'bg-slate-50/60 border-slate-200/80 text-slate-650 hover:bg-white hover:border-slate-350 hover:text-slate-900'"
+              >
+                <svg class="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+                <span class="leading-none text-[11px]">Exam Suite</span>
+              </button>
+
+              <!-- Tab: Spelling Lab (spellingLab) -->
+              <button
+                @click="activeMode = 'spellingLab'"
+                class="flex flex-col items-center justify-center text-center gap-2.5 p-3.5 rounded-2xl text-xs font-extrabold border transition-all relative cursor-pointer outline-none"
+                :class="activeMode === 'spellingLab' ? 'bg-indigo-600 border-indigo-700 text-white shadow-md shadow-indigo-150' : 'bg-slate-50/60 border-slate-200/80 text-slate-650 hover:bg-white hover:border-slate-350 hover:text-slate-900'"
+              >
+                <svg class="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V7a3 3 0 016 0v4a3 3 0 01-3 3z" />
+                </svg>
+                <span class="leading-none text-[11px]">Spelling Lab</span>
+              </button>
+
+              <!-- Tab: Assignments (assignment) -->
+              <button
+                @click="activeMode = 'assignment'"
+                class="flex flex-col items-center justify-center text-center gap-2.5 p-3.5 rounded-2xl text-xs font-extrabold border transition-all relative cursor-pointer outline-none"
+                :class="activeMode === 'assignment' ? 'bg-indigo-600 border-indigo-700 text-white shadow-md shadow-indigo-150' : 'bg-slate-50/60 border-slate-200/80 text-slate-650 hover:bg-white hover:border-slate-350 hover:text-slate-900'"
+              >
+                <svg class="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                </svg>
+                <span class="leading-none text-[11px]">Assignments</span>
+                <template x-if="assignments.length">
+                  <span class="absolute top-2 right-2 text-[9px] bg-indigo-100 text-indigo-750 font-black px-1.5 py-0.5 rounded-md" x-text="assignments.length"></span>
+                </template>
+              </button>
+
+              <!-- Tab: Roster SIMS (management) -->
+              <button
+                @click="activeMode = 'management'"
+                class="flex flex-col items-center justify-center text-center gap-2.5 p-3.5 rounded-2xl text-xs font-extrabold border transition-all relative cursor-pointer outline-none"
+                :class="activeMode === 'management' ? 'bg-indigo-600 border-indigo-700 text-white shadow-md shadow-indigo-150' : 'bg-slate-50/60 border-slate-200/80 text-slate-650 hover:bg-white hover:border-slate-350 hover:text-slate-900'"
+              >
+                <svg class="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
+                </svg>
+                <span class="leading-none text-[11px]">Manage Roster</span>
+                <template x-if="roster.length">
+                  <span class="absolute top-2 right-2 text-[9px] bg-rose-550 bg-rose-500 text-white font-mono font-bold px-1.5 py-0.5 rounded-md" x-text="roster.length"></span>
+                </template>
+              </button>
+
+              <!-- Tab: Meetings (meeting) -->
+              <button
+                @click="activeMode = 'meeting'"
+                class="flex flex-col items-center justify-center text-center gap-2.5 p-3.5 rounded-2xl text-xs font-extrabold border transition-all relative cursor-pointer outline-none"
+                :class="activeMode === 'meeting' ? 'bg-indigo-600 border-indigo-700 text-white shadow-md shadow-indigo-150' : 'bg-slate-50/60 border-slate-200/80 text-slate-650 hover:bg-white hover:border-slate-350 hover:text-slate-900'"
+              >
+                <svg class="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                </svg>
+                <span class="leading-none text-[11px]">Meetings Desk</span>
+              </button>
+
+              <!-- Tab: Instant Meeting (instantMeeting) -->
+              <button
+                @click="activeMode = 'instantMeeting'"
+                class="flex flex-col items-center justify-center text-center gap-2.5 p-3.5 rounded-2xl text-xs font-extrabold border transition-all relative cursor-pointer outline-none"
+                :class="activeMode === 'instantMeeting' ? 'bg-indigo-600 border-indigo-700 text-white shadow-md shadow-indigo-150' : 'bg-slate-50/60 border-slate-200/80 text-slate-650 hover:bg-white hover:border-slate-350 hover:text-slate-900'"
+              >
+                <svg class="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                </svg>
+                <span class="leading-none text-[11px]">Instant stream</span>
+              </button>
+
+              <!-- Tab: WUN (wun) -->
+              <button
+                @click="activeMode = 'wun'"
+                class="flex flex-col items-center justify-center text-center gap-2.5 p-3.5 rounded-2xl text-xs font-extrabold border transition-all relative cursor-pointer outline-none"
+                :class="activeMode === 'wun' ? 'bg-indigo-600 border-indigo-700 text-white shadow-md shadow-indigo-150' : 'bg-slate-50/60 border-slate-200/80 text-slate-650 hover:bg-white hover:border-slate-350 hover:text-slate-900'"
+              >
+                <svg class="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.907c.961 0 1.36 1.246.588 1.81l-3.97 2.883a1 1 0 00-.364 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.971-2.883a1 1 0 00-1.178 0l-3.97 2.883c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.364-1.118L2.05 12.022c-.773-.564-.373-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z" />
+                </svg>
+                <span class="leading-none text-[11px]">WUN Tools</span>
+              </button>
             </div>
           </div>
 
@@ -2983,6 +3100,9 @@
           studentName: "",
           studentPasscode: "",
           classCodeInput: "",
+          micOn: false,
+          cameraOn: false,
+          handRaised: false,
 
           studentPeer: null,
           studentConn: null,
@@ -4048,13 +4168,13 @@
           },
 
           raiseHand() {
-            alert("Hand raised!");
+            this.handRaised = !this.handRaised;
           },
           toggleMic() {
-            alert("Mic toggled!");
+            this.micOn = !this.micOn;
           },
           toggleCamera() {
-            alert("Camera toggled!");
+            this.cameraOn = !this.cameraOn;
           },
           async shareScreen() {
             try {
