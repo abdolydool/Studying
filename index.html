@@ -262,109 +262,11 @@
               </template>
             </button>
           </form>
-          <button
-            type="button"
-            @click="activeMode = 'portal'"
-            class="w-full text-indigo-600 text-xs font-semibold hover:text-indigo-800 transition-colors mt-2"
-          >
-            Student Portal Access
-          </button>
-
-          <button
-            type="button"
-            @click="role = 'student'; activeMode = 'single'"
-            class="w-full text-slate-500 text-xs font-semibold hover:text-slate-700 transition-colors mt-2"
-          >
-            Continue as Temporary Student
-          </button>
+          <!-- Removed Student Portal and Temporary Student buttons -->
         </div>
       </template>
 
-      <!-- SUB-STATE 4: STUDENT PORTAL -->
-      <template x-if="activeMode === 'portal'">
-        <div
-          class="w-full max-w-md animate-fade-in bg-white border border-slate-200 rounded-2xl p-6 shadow-sm"
-        >
-          <template x-if="!auth.isLoggedIn">
-            <div class="space-y-4">
-              <h3
-                class="text-xl font-black text-slate-900"
-                x-text="auth.mode === 'login' ? 'Portal Login' : 'Create Account'"
-              ></h3>
-              <input
-                x-model="auth.username"
-                type="text"
-                placeholder="Username"
-                class="w-full p-2 border border-slate-300 rounded"
-              />
-              <input
-                x-model="auth.password"
-                type="password"
-                placeholder="Password"
-                class="w-full p-2 border border-slate-300 rounded"
-              />
-              <div class="flex gap-2">
-                <button
-                  @click="auth.mode === 'login' ? login() : register()"
-                  class="px-4 py-2 bg-indigo-600 text-white rounded font-bold"
-                  x-text="auth.mode === 'login' ? 'Login' : 'Register'"
-                ></button>
-                <button
-                  @click="auth.mode = auth.mode === 'login' ? 'register' : 'login'"
-                  class="text-xs text-indigo-600"
-                >
-                  Switch to
-                  <span
-                    x-text="auth.mode === 'login' ? 'Register' : 'Login'"
-                  ></span>
-                </button>
-              </div>
-              <button
-                @click="activeMode = 'single'"
-                class="w-full text-xs text-slate-500 hover:text-slate-700 pt-2"
-              >
-                Back
-              </button>
-            </div>
-          </template>
-
-          <template x-if="auth.isLoggedIn">
-            <div class="space-y-4">
-              <h3 class="text-xl font-black text-slate-900">
-                Welcome, <span x-text="auth.currentUser.email"></span>
-              </h3>
-              <button @click="logout()" class="text-xs text-rose-600">
-                Logout
-              </button>
-              <button
-                @click="activeMode = 'single'"
-                class="text-xs text-slate-500 hover:text-slate-700 block"
-              >
-                Back
-              </button>
-              <div class="border-t pt-4">
-                <h4 class="font-bold">My Grades</h4>
-                <template
-                  x-for="grade in auth.currentUser.grades"
-                  :key="grade.exam"
-                >
-                  <div class="p-2 bg-slate-50 border rounded mt-2">
-                    <p x-text="grade.exam"></p>
-                    <p
-                      class="font-bold text-indigo-700"
-                      x-text="grade.score + '%'"
-                    ></p>
-                    <p
-                      class="text-xs text-slate-600"
-                      x-text="grade.feedback"
-                    ></p>
-                  </div>
-                </template>
-              </div>
-            </div>
-          </template>
-        </div>
-      </template>
+      <!-- Removed Student Portal layout completely -->
 
       <!-- STUDENT ROLE STATE -->
       <template x-if="role === 'student'">
@@ -397,13 +299,7 @@
                 <option value="spellingLab">Spelling Lab</option>
                 <option value="assignment">Assignments</option>
               </select>
-              <button
-                @click="activeMode = 'portal'"
-                class="text-xs font-semibold text-indigo-700 hover:text-indigo-800 bg-indigo-50 border border-indigo-100 rounded-lg px-3 py-1.5 transition-colors"
-                x-show="activeMode !== 'portal'"
-              >
-                My Portal
-              </button>
+
               <button
                 @click="location.reload()"
                 class="text-xs font-semibold text-rose-600 hover:text-rose-700 bg-rose-50 hover:bg-rose-100 border border-rose-100 rounded-lg px-3 py-1.5 transition-colors"
@@ -1796,7 +1692,7 @@
                   <!-- Body List / Grid -->
                   <div class="p-6 flex-1 flex flex-col justify-between">
                     <!-- Case: Empty Students list -->
-                    <template x-if="numConnectedStudents() === 0">
+                    <template x-if="roster.length === 0">
                       <div
                         class="flex-1 flex flex-col items-center justify-center p-12 text-center my-auto"
                       >
@@ -1836,11 +1732,11 @@
                     </template>
 
                     <!-- Case: Student Grid list -->
-                    <template x-if="numConnectedStudents() > 0">
+                    <template x-if="roster.length > 0">
                       <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <template
-                          x-for="item in students.filter(s => s.connected)"
-                          :key="item.id"
+                          x-for="item in roster"
+                          :key="item.name"
                         >
                           <div
                             class="border border-slate-200 bg-slate-50 rounded-xl p-4 shadow-sm flex flex-col justify-between hover:shadow-md hover:border-slate-300 transition-all duration-200"
@@ -2412,8 +2308,8 @@
                     <!-- Row list -->
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                       <template
-                        x-for="item in students.filter(s => s.connected)"
-                        :key="item.id"
+                        x-for="item in roster"
+                        :key="item.name"
                       >
                         <div
                           class="border border-slate-200 rounded-2xl bg-slate-50/50 p-4 shadow-3xs flex flex-col justify-between hover:border-slate-350 hover:bg-slate-50 transition-all relative"
@@ -2764,8 +2660,8 @@
 
                     <div class="space-y-5">
                       <template
-                        x-for="item in students.filter(s => s.connected)"
-                        :key="item.id"
+                        x-for="item in roster"
+                        :key="item.name"
                       >
                         <div
                           class="border border-slate-200 rounded-2xl bg-slate-50/50 p-5 space-y-4"
@@ -2902,12 +2798,12 @@
                               </div>
 
                               <button
-                                @click="saveGradeToPortal(item); graded = true"
+                                @click="saveAndFinalizeGrade(item); graded = true"
                                 :disabled="graded"
                                 class="w-full py-2.5 mt-4 bg-indigo-50 hover:bg-indigo-100 hover:border-indigo-300 text-indigo-700 font-bold border border-indigo-200 rounded-xl text-xs transition-colors uppercase tracking-widest disabled:bg-slate-100 disabled:border-slate-200 disabled:text-slate-400 cursor-pointer outline-none"
                               >
                                 <span
-                                  x-text="graded ? 'Grade Locked ✓' : 'Seal & Save to Portal'"
+                                  x-text="graded ? 'Grade Locked ✓' : 'Seal & Finalize Grade'"
                                 ></span>
                               </button>
                             </div>
@@ -3149,6 +3045,7 @@
 
           // Exam and Progress check states
           activeMode: "single", // 'single' or 'exam' or 'spellingLab'
+          examStep: "catalog", // 'catalog', 'live', 'results'
 
           managementForm: {
             username: "",
@@ -3487,30 +3384,30 @@
           },
 
            addOrUpdateStudent(id, data) {
-             const idx = this.students.findIndex((s) => s.id === id);
-             if (idx !== -1) {
-               this.students[idx] = { ...this.students[idx], ...data };
-             } else {
-               this.students.push({
-                 id: id,
-                 name: data.name || "Unknown Student",
-                 connected: data.connected !== undefined ? data.connected : true,
-                 answer: data.answer || null,
-                 examAnswers: data.examAnswers || {},
-                 examSubmitted: data.examSubmitted || false,
-                 score: 100,
-                 feedback: "Exceptional work, very thorough response!",
-                 studentQuestionTimeSpent: data.studentQuestionTimeSpent || {},
-                 studentQuestionChanges: data.studentQuestionChanges || {},
-                 flaggedQuestions: data.flaggedQuestions || {},
-                 studentQuestionIndex: data.studentQuestionIndex !== undefined ? data.studentQuestionIndex : 0,
-               });
+             let idx = -1;
+             
+             // First try to match by name (from handshake)
+             if (data.name) {
+               idx = this.roster.findIndex(s => s.name === data.name);
              }
-             this.students = [...this.students];
+             // Otherwise match by the peer connection ID we previously saved
+             else {
+               idx = this.roster.findIndex(s => s.peerId === id);
+             }
+
+             if (idx !== -1) {
+               this.roster[idx] = { 
+                 ...this.roster[idx], 
+                 peerId: id,
+                 ...data 
+               };
+               this.roster = [...this.roster]; // maintain reactivity for Alpine
+             }
+             // Connection attempts that don't match roster are ignored
            },
 
           getCohortMetrics() {
-            const connectedStudents = this.students.filter(s => s.connected);
+            const connectedStudents = this.roster.filter(s => s.connected);
             const total = connectedStudents.length;
             if (!total) return { flaggedCounts: {}, hesitationCounts: {}, averageTime: 0 };
             
@@ -3570,7 +3467,7 @@
             if (!this.newQuestionInput.trim()) return;
             this.currentTeacherQuestion = this.newQuestionInput.trim();
 
-            this.students = this.students.map((s) => ({ ...s, answer: null }));
+            this.roster = this.roster.map((s) => ({ ...s, answer: null }));
 
             Object.values(this.teacherConnections).forEach((conn) => {
               conn.send({
@@ -3591,7 +3488,7 @@
           },
 
           launchExam(examObj) {
-            this.students = this.students.map((s) => ({
+            this.roster = this.roster.map((s) => ({
               ...s,
               examAnswers: {},
               examSubmitted: false,
@@ -3808,7 +3705,7 @@
 
             const examTitle = this.currentTeacherExam ? this.currentTeacherExam.title : "Classroom Examination";
             const questions = this.currentTeacherExam ? this.currentTeacherExam.questions : [];
-            const activeStudents = this.students; // All joined/connected/submitted students
+            const activeStudents = this.roster; // All rostered/connected students
 
             let currentPage = 1;
 
@@ -4179,7 +4076,7 @@
           },
 
           numConnectedStudents() {
-            return this.students.filter((s) => s.connected).length;
+            return this.roster.filter((s) => s.connected).length;
           },
 
           register() {
@@ -4251,23 +4148,13 @@
             this.role = "lobby";
           },
 
-          saveGradeToPortal(item) {
-            const student = this.studentDB.find((u) => u.email === item.name);
-            if (!student)
-              return alert(
-                "No portal account matching the email: " + item.name,
-              );
-            student.grades.push({
-              exam: this.currentTeacherExam.title,
-              score: item.score,
-              feedback: item.feedback,
-            });
-            alert("Grade saved to " + item.name + "'s portal!");
+          saveAndFinalizeGrade(item) {
             item.graded = true;
+            alert("Grade and feedback comments permanently sealed for " + item.name + "!");
           },
 
           numAnswersSubmitted() {
-            return this.students.filter((s) => s.connected && s.answer).length;
+            return this.roster.filter((s) => s.connected && s.answer).length;
           },
         }));
       });
